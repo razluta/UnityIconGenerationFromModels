@@ -1,0 +1,318 @@
+using UnityEditor;
+using UnityEngine;
+using UnityEngine.UIElements;
+using UnityEditor.UIElements;
+using System.IO;
+
+namespace Razluta.UnityIconGenerationFromModels
+{
+    public class UnityIconGenerationWindow : EditorWindow
+    {
+        private IconGeneratorSettings settings;
+        private VisualElement root;
+        private Label prefabCountLabel;
+        private Label statusLabel;
+        private Button generateButton;
+        private Button previewButton;
+        
+        [MenuItem("Tools/Razluta/Unity Icon Generation From Models")]
+        public static void ShowWindow()
+        {
+            var window = GetWindow<UnityIconGenerationWindow>();
+            window.titleContent = new GUIContent("Unity Icon Generation");
+            window.minSize = new Vector2(400, 600);
+        }
+        
+        public void CreateGUI()
+        {
+            settings = new IconGeneratorSettings();
+            settings.LoadFromPrefs();
+            
+            // Load UXML
+            var visualTree = Resources.Load<VisualTreeAsset>("IconGeneratorWindow");
+            if (visualTree == null)
+            {
+                // Fallback: create UXML programmatically if resource loading fails
+                CreateGUIFallback();
+                return;
+            }
+            
+            root = rootVisualElement;
+            visualTree.CloneTree(root);
+            
+            BindUIElements();
+            UpdatePrefabCount();
+        }
+        
+        private void CreateGUIFallback()
+        {
+            root = rootVisualElement;
+            
+            var scrollView = new ScrollView();
+            root.Add(scrollView);
+            
+            var container = new VisualElement();
+            container.style.paddingTop = 10;
+            container.style.paddingBottom = 10;
+            container.style.paddingLeft = 10;
+            container.style.paddingRight = 10;
+            scrollView.Add(container);
+            
+            // Title
+            var title = new Label("Unity Icon Generation From Models");
+            title.style.fontSize = 18;
+            title.style.unityFontStyleAndWeight = FontStyle.Bold;
+            title.style.marginBottom = 10;
+            title.style.unityTextAlign = TextAnchor.MiddleCenter;
+            container.Add(title);
+            
+            // Input Settings
+            var inputFoldout = new Foldout { text = "Input Settings", value = true };
+            container.Add(inputFoldout);
+            
+            var inputFolder = new ObjectField("Input Folder") { objectType = typeof(DefaultAsset) };
+            inputFolder.name = "input-folder";
+            inputFoldout.Add(inputFolder);
+            
+            var prefabPrefix = new TextField("Prefab Name Prefix");
+            prefabPrefix.name = "prefab-prefix";
+            inputFoldout.Add(prefabPrefix);
+            
+            prefabCountLabel = new Label("Found Prefabs: 0");
+            prefabCountLabel.name = "prefab-count";
+            prefabCountLabel.style.marginTop = 5;
+            prefabCountLabel.style.unityFontStyleAndWeight = FontStyle.Italic;
+            inputFoldout.Add(prefabCountLabel);
+            
+            // Output Settings
+            var outputFoldout = new Foldout { text = "Output Settings", value = true };
+            container.Add(outputFoldout);
+            
+            var outputFolder = new ObjectField("Output Folder") { objectType = typeof(DefaultAsset) };
+            outputFolder.name = "output-folder";
+            outputFoldout.Add(outputFolder);
+            
+            var iconWidth = new IntegerField("Icon Width");
+            iconWidth.name = "icon-width";
+            outputFoldout.Add(iconWidth);
+            
+            var iconHeight = new IntegerField("Icon Height");
+            iconHeight.name = "icon-height";
+            outputFoldout.Add(iconHeight);
+            
+            // Buttons
+            previewButton = new Button(() => PreviewSettings()) { text = "Preview Settings" };
+            previewButton.name = "preview-button";
+            previewButton.style.height = 30;
+            previewButton.style.marginTop = 20;
+            previewButton.style.marginBottom = 5;
+            container.Add(previewButton);
+            
+            generateButton = new Button(() => GenerateIcons()) { text = "Generate Icons" };
+            generateButton.name = "generate-button";
+            generateButton.style.height = 40;
+            generateButton.style.fontSize = 14;
+            generateButton.style.unityFontStyleAndWeight = FontStyle.Bold;
+            container.Add(generateButton);
+            
+            statusLabel = new Label("");
+            statusLabel.name = "status-label";
+            statusLabel.style.marginTop = 10;
+            statusLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
+            container.Add(statusLabel);
+            
+            BindUIElementsFallback();
+        }
+        
+        private void BindUIElementsFallback()
+        {
+            // Get references to UI elements
+            var inputFolder = root.Q<ObjectField>("input-folder");
+            inputFolder.value = AssetDatabase.LoadAssetAtPath<DefaultAsset>(settings.inputFolderPath);
+            inputFolder.RegisterValueChangedCallback(evt => {
+                settings.inputFolderPath = AssetDatabase.GetAssetPath(evt.newValue);
+                UpdatePrefabCount();
+                settings.SaveToPrefs();
+            });
+            
+            var prefabPrefix = root.Q<TextField>("prefab-prefix");
+            prefabPrefix.value = settings.prefabNamePrefix;
+            prefabPrefix.RegisterValueChangedCallback(evt => {
+                settings.prefabNamePrefix = evt.newValue;
+                UpdatePrefabCount();
+                settings.SaveToPrefs();
+            });
+            
+            var outputFolder = root.Q<ObjectField>("output-folder");
+            outputFolder.value = AssetDatabase.LoadAssetAtPath<DefaultAsset>(settings.outputFolderPath);
+            outputFolder.RegisterValueChangedCallback(evt => {
+                settings.outputFolderPath = AssetDatabase.GetAssetPath(evt.newValue);
+                settings.SaveToPrefs();
+            });
+            
+            var iconWidth = root.Q<IntegerField>("icon-width");
+            iconWidth.value = settings.iconWidth;
+            iconWidth.RegisterValueChangedCallback(evt => {
+                settings.iconWidth = evt.newValue;
+                settings.SaveToPrefs();
+            });
+            
+            var iconHeight = root.Q<IntegerField>("icon-height");
+            iconHeight.value = settings.iconHeight;
+            iconHeight.RegisterValueChangedCallback(evt => {
+                settings.iconHeight = evt.newValue;
+                settings.SaveToPrefs();
+            });
+        }
+        
+        private void BindField<TField, TValue>(string fieldName, TValue initialValue, System.Action<TValue> onValueChanged)
+            where TField : BaseField<TValue>
+        {
+            var field = root.Q<TField>(fieldName);
+            if (field != null)
+            {
+                field.value = initialValue;
+                field.RegisterValueChangedCallback(evt => {
+                    onValueChanged(evt.newValue);
+                    settings.SaveToPrefs();
+                });
+            }
+        }
+        
+        private void UpdatePrefabCount()
+        {
+            if (prefabCountLabel == null) return;
+            
+            int count = 0;
+            if (AssetDatabase.IsValidFolder(settings.inputFolderPath))
+            {
+                var guids = AssetDatabase.FindAssets("t:Prefab", new[] { settings.inputFolderPath });
+                foreach (var guid in guids)
+                {
+                    var path = AssetDatabase.GUIDToAssetPath(guid);
+                    var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                    if (prefab != null && prefab.name.StartsWith(settings.prefabNamePrefix))
+                    {
+                        count++;
+                    }
+                }
+            }
+            
+            prefabCountLabel.text = $"Found Prefabs: {count}";
+        }
+        
+        private void PreviewSettings()
+        {
+            var message = $"Current Settings:\n\n" +
+                         $"Input Folder: {settings.inputFolderPath}\n" +
+                         $"Prefab Prefix: {settings.prefabNamePrefix}\n" +
+                         $"Output Folder: {settings.outputFolderPath}\n" +
+                         $"Icon Size: {settings.iconWidth}x{settings.iconHeight}\n" +
+                         $"Camera Position: {settings.cameraPosition}\n" +
+                         $"Camera FOV: {settings.cameraFOV}°\n" +
+                         $"Auto Center: {settings.autoCenter}\n" +
+                         $"Auto Fit: {settings.autoFit}";
+            
+            EditorUtility.DisplayDialog("Icon Generator Settings", message, "OK");
+        }
+        
+        private void GenerateIcons()
+        {
+            if (string.IsNullOrEmpty(settings.inputFolderPath) || !AssetDatabase.IsValidFolder(settings.inputFolderPath))
+            {
+                EditorUtility.DisplayDialog("Error", "Please select a valid input folder.", "OK");
+                return;
+            }
+            
+            if (string.IsNullOrEmpty(settings.outputFolderPath))
+            {
+                EditorUtility.DisplayDialog("Error", "Please select a valid output folder.", "OK");
+                return;
+            }
+            
+            if (string.IsNullOrEmpty(settings.prefabNamePrefix))
+            {
+                EditorUtility.DisplayDialog("Error", "Please enter a prefab name prefix.", "OK");
+                return;
+            }
+            
+            generateButton.SetEnabled(false);
+            statusLabel.text = "Generating icons...";
+            
+            var tool = new UnityIconGenerationTool(settings);
+            tool.GenerateIcons(
+                onProgress: (progress) => {
+                    statusLabel.text = progress;
+                    Repaint();
+                },
+                onComplete: () => {
+                    generateButton.SetEnabled(true);
+                    statusLabel.text = "Icons generated successfully!";
+                    Repaint();
+                }
+            );
+        }
+    }
+}dUIElements()
+        {
+            // Get references to UI elements
+            prefabCountLabel = root.Q<Label>("prefab-count");
+            statusLabel = root.Q<Label>("status-label");
+            generateButton = root.Q<Button>("generate-button");
+            previewButton = root.Q<Button>("preview-button");
+            
+            // Bind input settings
+            var inputFolder = root.Q<ObjectField>("input-folder");
+            inputFolder.value = AssetDatabase.LoadAssetAtPath<DefaultAsset>(settings.inputFolderPath);
+            inputFolder.RegisterValueChangedCallback(evt => {
+                settings.inputFolderPath = AssetDatabase.GetAssetPath(evt.newValue);
+                UpdatePrefabCount();
+                settings.SaveToPrefs();
+            });
+            
+            var prefabPrefix = root.Q<TextField>("prefab-prefix");
+            prefabPrefix.value = settings.prefabNamePrefix;
+            prefabPrefix.RegisterValueChangedCallback(evt => {
+                settings.prefabNamePrefix = evt.newValue;
+                UpdatePrefabCount();
+                settings.SaveToPrefs();
+            });
+            
+            // Bind output settings
+            var outputFolder = root.Q<ObjectField>("output-folder");
+            outputFolder.value = AssetDatabase.LoadAssetAtPath<DefaultAsset>(settings.outputFolderPath);
+            outputFolder.RegisterValueChangedCallback(evt => {
+                settings.outputFolderPath = AssetDatabase.GetAssetPath(evt.newValue);
+                settings.SaveToPrefs();
+            });
+            
+            BindField<IntegerField, int>("icon-width", settings.iconWidth, val => settings.iconWidth = val);
+            BindField<IntegerField, int>("icon-height", settings.iconHeight, val => settings.iconHeight = val);
+            
+            // Bind camera settings
+            BindField<Vector3Field, Vector3>("camera-position", settings.cameraPosition, val => settings.cameraPosition = val);
+            BindField<Vector3Field, Vector3>("camera-rotation", settings.cameraRotation, val => settings.cameraRotation = val);
+            BindField<FloatField, float>("camera-fov", settings.cameraFOV, val => settings.cameraFOV = val);
+            BindField<ColorField, Color>("background-color", settings.backgroundColor, val => settings.backgroundColor = val);
+            
+            // Bind lighting settings
+            BindField<Vector3Field, Vector3>("main-light-direction", settings.mainLightDirection, val => settings.mainLightDirection = val);
+            BindField<ColorField, Color>("main-light-color", settings.mainLightColor, val => settings.mainLightColor = val);
+            BindField<FloatField, float>("main-light-intensity", settings.mainLightIntensity, val => settings.mainLightIntensity = val);
+            BindField<Vector3Field, Vector3>("fill-light-direction", settings.fillLightDirection, val => settings.fillLightDirection = val);
+            BindField<ColorField, Color>("fill-light-color", settings.fillLightColor, val => settings.fillLightColor = val);
+            BindField<FloatField, float>("fill-light-intensity", settings.fillLightIntensity, val => settings.fillLightIntensity = val);
+            
+            // Bind advanced settings
+            BindField<FloatField, float>("object-scale", settings.objectScale, val => settings.objectScale = val);
+            BindField<Vector3Field, Vector3>("object-position", settings.objectPosition, val => settings.objectPosition = val);
+            BindField<Vector3Field, Vector3>("object-rotation", settings.objectRotation, val => settings.objectRotation = val);
+            BindField<Toggle, bool>("auto-center", settings.autoCenter, val => settings.autoCenter = val);
+            BindField<Toggle, bool>("auto-fit", settings.autoFit, val => settings.autoFit = val);
+            
+            // Bind buttons
+            generateButton.clicked += GenerateIcons;
+            previewButton.clicked += PreviewSettings;
+        }
+        
+        private void Bin

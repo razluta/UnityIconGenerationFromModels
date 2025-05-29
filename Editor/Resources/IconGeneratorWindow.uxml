@@ -1,0 +1,69 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="True">
+    <ui:ScrollView>
+        <ui:VisualElement style="padding: 10px;">
+            <ui:Label text="Unity Icon Generation From Models" style="font-size: 18px; font-style: bold; margin-bottom: 10px; -unity-text-align: middle-center;" />
+            
+            <!-- Input Settings -->
+            <ui:Foldout text="Input Settings" value="true" name="input-foldout">
+                <ui:VisualElement style="margin-left: 15px; margin-top: 5px;">
+                    <uie:ObjectField label="Input Folder" name="input-folder" type="UnityEditor.DefaultAsset" />
+                    <ui:TextField label="Prefab Name Prefix" name="prefab-prefix" />
+                    <ui:Label text="Found Prefabs: 0" name="prefab-count" style="margin-top: 5px; font-style: italic;" />
+                </ui:VisualElement>
+            </ui:Foldout>
+            
+            <!-- Output Settings -->
+            <ui:Foldout text="Output Settings" value="true" name="output-foldout">
+                <ui:VisualElement style="margin-left: 15px; margin-top: 5px;">
+                    <uie:ObjectField label="Output Folder" name="output-folder" type="UnityEditor.DefaultAsset" />
+                    <ui:IntegerField label="Icon Width" name="icon-width" />
+                    <ui:IntegerField label="Icon Height" name="icon-height" />
+                </ui:VisualElement>
+            </ui:Foldout>
+            
+            <!-- Camera Settings -->
+            <ui:Foldout text="Camera Settings" value="false" name="camera-foldout">
+                <ui:VisualElement style="margin-left: 15px; margin-top: 5px;">
+                    <uie:Vector3Field label="Camera Position" name="camera-position" />
+                    <uie:Vector3Field label="Camera Rotation" name="camera-rotation" />
+                    <ui:FloatField label="Field of View" name="camera-fov" />
+                    <uie:ColorField label="Background Color" name="background-color" />
+                </ui:VisualElement>
+            </ui:Foldout>
+            
+            <!-- Lighting Settings -->
+            <ui:Foldout text="Lighting Settings" value="false" name="lighting-foldout">
+                <ui:VisualElement style="margin-left: 15px; margin-top: 5px;">
+                    <ui:Label text="Main Light" style="font-style: bold;" />
+                    <uie:Vector3Field label="Direction" name="main-light-direction" />
+                    <uie:ColorField label="Color" name="main-light-color" />
+                    <ui:FloatField label="Intensity" name="main-light-intensity" />
+                    
+                    <ui:Label text="Fill Light" style="font-style: bold; margin-top: 10px;" />
+                    <uie:Vector3Field label="Direction" name="fill-light-direction" />
+                    <uie:ColorField label="Color" name="fill-light-color" />
+                    <ui:FloatField label="Intensity" name="fill-light-intensity" />
+                </ui:VisualElement>
+            </ui:Foldout>
+            
+            <!-- Advanced Settings -->
+            <ui:Foldout text="Advanced Settings" value="false" name="advanced-foldout">
+                <ui:VisualElement style="margin-left: 15px; margin-top: 5px;">
+                    <ui:FloatField label="Object Scale" name="object-scale" />
+                    <uie:Vector3Field label="Object Position" name="object-position" />
+                    <uie:Vector3Field label="Object Rotation" name="object-rotation" />
+                    <ui:Toggle label="Auto Center" name="auto-center" />
+                    <ui:Toggle label="Auto Fit" name="auto-fit" />
+                </ui:VisualElement>
+            </ui:Foldout>
+            
+            <!-- Action Buttons -->
+            <ui:VisualElement style="margin-top: 20px;">
+                <ui:Button text="Preview Settings" name="preview-button" style="height: 30px; margin-bottom: 5px;" />
+                <ui:Button text="Generate Icons" name="generate-button" style="height: 40px; font-size: 14px; font-style: bold;" />
+                <ui:Label text="" name="status-label" style="margin-top: 10px; -unity-text-align: middle-center;" />
+            </ui:VisualElement>
+            
+        </ui:VisualElement>
+    </ui:ScrollView>
+</ui:UXML>

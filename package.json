@@ -1,0 +1,27 @@
+{
+  "name": "com.razluta.unity-icon-generation-from-models",
+  "version": "1.0.0",
+  "displayName": "Unity Icon Generation From Models",
+  "description": "A Unity tool for generating transparent icons from 3D model prefabs with customizable rendering environments.",
+  "unity": "6000.0.1",
+  "keywords": [
+    "tools",
+    "editor",
+    "icons",
+    "3d",
+    "rendering",
+    "models"
+  ],
+  "author": {
+    "name": "Razluta",
+    "url": "https://github.com/razluta"
+  },
+  "dependencies": {},
+  "samples": [
+    {
+      "displayName": "Example Prefabs",
+      "description": "Sample prefabs to test the Unity Icon Generation From Models tool",
+      "path": "Samples~/ExamplePrefabs"
+    }
+  ]
+}
