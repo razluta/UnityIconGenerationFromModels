@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "displayName": "Unity Icon Generation From Models",
   "description": "A Unity tool for generating transparent icons from 3D model prefabs with customizable rendering environments.",
-  "unity": "6000.0.1",
+  "unity": "6000.0",
   "keywords": [
     "tools",
     "editor",
