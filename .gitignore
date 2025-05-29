@@ -75,3 +75,5 @@ crashlytics-build.properties
 /[Aa]ssets/[Ss]treamingAssets/aa/*
 /ProjectSettings
 /.idea
+Logs.meta
+Packages.meta
