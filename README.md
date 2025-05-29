@@ -2,6 +2,8 @@
 
 A Unity Editor tool for generating transparent icons from 3D model prefabs with customizable rendering environments.
 
+![Unity Icon Generation Tool Interface](Samples/SampleUi.png)
+
 ## Features
 
 - **Batch Processing**: Generate icons for multiple prefabs at once
