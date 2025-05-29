@@ -36,13 +36,13 @@ A Unity Editor tool for generating transparent icons from 3D model prefabs with 
 ### Basic Setup
 
 1. **Input Settings**:
-    - Select your prefabs folder (e.g., `Assets/Prefabs`)
-    - Enter the prefix your prefabs start with (e.g., `Item_`)
-    - The tool will show how many matching prefabs were found
+   - Select your prefabs folder (e.g., `Assets/Prefabs`)
+   - Enter the prefix your prefabs start with (e.g., `Item_`)
+   - The tool will show how many matching prefabs were found
 
 2. **Output Settings**:
-    - Select or create an output folder for generated icons
-    - Set the desired icon dimensions (default: 256x256)
+   - Select or create an output folder for generated icons
+   - Set the desired icon dimensions (default: 256x256)
 
 3. **Click "Generate Icons"** to start the batch process
 
@@ -80,7 +80,7 @@ com.razluta.unity-icon-generation-from-models/
 │   │   ├── UnityIconGenerationWindow.cs             # Main UI window
 │   │   ├── UnityIconGenerationTool.cs               # Core generation logic
 │   │   └── IconGeneratorSettings.cs                 # Settings management
-│   └── UI/
+│   └── Resources/
 │       └── IconGeneratorWindow.uxml                 # UI layout definition
 └── Samples~/
     └── ExamplePrefabs/                              # Sample prefabs for testing
@@ -141,69 +141,6 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 ## Support
 
 For issues, feature requests, or contributions, please visit the [GitHub repository](https://github.com/razluta/UnityIconGenerationFromModels).
-
-## License
-
-This tool is provided as-is for educational and commercial use. See the repository for specific license terms. # UI layout definition
-└── Samples~/
-└── ExamplePrefabs/              # Sample prefabs for testing
-```
-
-## Technical Details
-
-### Rendering Process
-
-1. Creates a temporary scene with configured lighting and camera
-2. Instantiates each prefab individually
-3. Applies auto-centering and auto-fitting if enabled
-4. Renders to a RenderTexture with transparency support
-5. Converts to PNG and saves to the output directory
-6. Cleans up temporary objects and scene
-
-### Performance Considerations
-
-- Uses anti-aliasing (8x MSAA) for high-quality results
-- Processes prefabs one at a time to avoid memory issues
-- Cleans up resources after each render
-- Shows progress bar during batch processing
-
-## Troubleshooting
-
-### Common Issues
-
-**"No prefabs found" message**
-- Check that your input folder path is correct
-- Verify your prefab name prefix matches your actual prefab names
-- Make sure prefabs are actually in the specified folder (not subfolders)
-
-**Black icons instead of transparent**
-- Ensure background color alpha is set to 0
-- Check that your materials support transparency
-- Verify render texture format supports alpha channel
-
-**Objects appear too small/large**
-- Enable "Auto Fit" for automatic scaling
-- Adjust "Object Scale" manually
-- Modify camera position/FOV for better framing
-
-**Poor lighting/shadows**
-- Adjust main light and fill light directions
-- Increase fill light intensity to reduce harsh shadows
-- Consider the lighting direction relative to your object's shape
-
-### Performance Tips
-
-- Process prefabs in smaller batches if you have memory constraints
-- Close other Unity windows during generation to free up resources
-- Use lower icon resolutions (128x128) for faster processing during testing
-
-## Version History
-
-See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
-
-## Support
-
-For issues, feature requests, or contributions, please visit the [GitHub repository](https://github.com/razluta/icon-generator).
 
 ## License
 
