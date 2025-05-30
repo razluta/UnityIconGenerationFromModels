@@ -16,6 +16,9 @@ namespace Razluta.UnityIconGenerationFromModels
         private Button previewButton;
         private VisualElement pointLightsContainer;
         private Button addPointLightButton;
+        private Button setupMockupButton;
+        private Button capturePreviewButton;
+        private Button collectConfigButton;
         
         [MenuItem("Tools/Razluta/Unity Icon Generation From Models")]
         public static void ShowWindow()
@@ -177,6 +180,38 @@ namespace Razluta.UnityIconGenerationFromModels
             addPointLightButton.style.marginTop = 5;
             lightingFoldout.Add(addPointLightButton);
             
+            // Preview & Configuration Buttons
+            var previewConfigLabel = new Label("Preview & Configuration");
+            previewConfigLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            previewConfigLabel.style.marginTop = 20;
+            previewConfigLabel.style.marginBottom = 5;
+            container.Add(previewConfigLabel);
+            
+            var buttonRow = new VisualElement();
+            buttonRow.style.flexDirection = FlexDirection.Row;
+            buttonRow.style.marginBottom = 5;
+            container.Add(buttonRow);
+            
+            setupMockupButton = new Button(() => SetupSceneMockup()) { text = "Setup Scene Mockup" };
+            setupMockupButton.name = "setup-mockup-button";
+            setupMockupButton.style.height = 30;
+            setupMockupButton.style.flexGrow = 1;
+            setupMockupButton.style.marginRight = 5;
+            buttonRow.Add(setupMockupButton);
+            
+            capturePreviewButton = new Button(() => CapturePreview()) { text = "Capture Preview" };
+            capturePreviewButton.name = "capture-preview-button";
+            capturePreviewButton.style.height = 30;
+            capturePreviewButton.style.flexGrow = 1;
+            capturePreviewButton.style.marginLeft = 5;
+            buttonRow.Add(capturePreviewButton);
+            
+            collectConfigButton = new Button(() => CollectSceneConfiguration()) { text = "Collect Scene Configuration" };
+            collectConfigButton.name = "collect-config-button";
+            collectConfigButton.style.height = 30;
+            collectConfigButton.style.marginBottom = 10;
+            container.Add(collectConfigButton);
+            
             // Advanced Settings
             var advancedFoldout = new Foldout { text = "Advanced Settings", value = false };
             container.Add(advancedFoldout);
@@ -234,6 +269,9 @@ namespace Razluta.UnityIconGenerationFromModels
             previewButton = root.Q<Button>("preview-button");
             pointLightsContainer = root.Q<VisualElement>("point-lights-container");
             addPointLightButton = root.Q<Button>("add-point-light-button");
+            setupMockupButton = root.Q<Button>("setup-mockup-button");
+            capturePreviewButton = root.Q<Button>("capture-preview-button");
+            collectConfigButton = root.Q<Button>("collect-config-button");
             
             // Bind input settings
             var inputFolder = root.Q<ObjectField>("input-folder");
@@ -302,6 +340,12 @@ namespace Razluta.UnityIconGenerationFromModels
                 previewButton.clicked += PreviewSettings;
             if (addPointLightButton != null)
                 addPointLightButton.clicked += AddPointLight;
+            if (setupMockupButton != null)
+                setupMockupButton.clicked += SetupSceneMockup;
+            if (capturePreviewButton != null)
+                capturePreviewButton.clicked += CapturePreview;
+            if (collectConfigButton != null)
+                collectConfigButton.clicked += CollectSceneConfiguration;
         }
         
         private void BindUIElementsFallback()
@@ -556,5 +600,146 @@ namespace Razluta.UnityIconGenerationFromModels
                 }
             );
         }
+        
+        private void SetupSceneMockup()
+        {
+            var mockupTool = new SceneMockupTool(settings);
+            mockupTool.SetupMockupScene();
+            statusLabel.text = "Scene mockup created! Check your scene view.";
+        }
+        
+        private void CapturePreview()
+        {
+            var mockupTool = new SceneMockupTool(settings);
+            var previewTexture = mockupTool.CapturePreview();
+            
+            if (previewTexture != null)
+            {
+                ShowPreviewWindow(previewTexture);
+                statusLabel.text = "Preview captured!";
+            }
+            else
+            {
+                statusLabel.text = "Failed to capture preview. Make sure scene mockup is set up.";
+            }
+        }
+        
+        private void CollectSceneConfiguration()
+        {
+            var mockupTool = new SceneMockupTool(settings);
+            if (mockupTool.CollectSceneConfiguration())
+            {
+                // Refresh UI to show updated settings
+                RefreshAllUIFromSettings();
+                statusLabel.text = "Scene configuration collected and updated!";
+            }
+            else
+            {
+                statusLabel.text = "No mockup scene found. Please setup scene mockup first.";
+            }
+        }
+        
+        private void RefreshAllUIFromSettings()
+        {
+            // Refresh all UI elements with current settings values
+            var inputFolder = root.Q<ObjectField>("input-folder");
+            if (inputFolder != null)
+                inputFolder.value = AssetDatabase.LoadAssetAtPath<DefaultAsset>(settings.inputFolderPath);
+                
+            var prefabPrefix = root.Q<TextField>("prefab-prefix");
+            if (prefabPrefix != null)
+                prefabPrefix.value = settings.prefabNamePrefix;
+                
+            var outputFolder = root.Q<ObjectField>("output-folder");
+            if (outputFolder != null)
+                outputFolder.value = AssetDatabase.LoadAssetAtPath<DefaultAsset>(settings.outputFolderPath);
+            
+            RefreshField<IntegerField, int>("icon-width", settings.iconWidth);
+            RefreshField<IntegerField, int>("icon-height", settings.iconHeight);
+            RefreshField<Vector3Field, Vector3>("camera-position", settings.cameraPosition);
+            RefreshField<Vector3Field, Vector3>("camera-rotation", settings.cameraRotation);
+            RefreshField<FloatField, float>("camera-fov", settings.cameraFOV);
+            RefreshField<ColorField, Color>("background-color", settings.backgroundColor);
+            RefreshField<Vector3Field, Vector3>("main-light-direction", settings.mainLightDirection);
+            RefreshField<ColorField, Color>("main-light-color", settings.mainLightColor);
+            RefreshField<FloatField, float>("main-light-intensity", settings.mainLightIntensity);
+            RefreshField<Vector3Field, Vector3>("fill-light-direction", settings.fillLightDirection);
+            RefreshField<ColorField, Color>("fill-light-color", settings.fillLightColor);
+            RefreshField<FloatField, float>("fill-light-intensity", settings.fillLightIntensity);
+            RefreshField<FloatField, float>("object-scale", settings.objectScale);
+            RefreshField<Vector3Field, Vector3>("object-position", settings.objectPosition);
+            RefreshField<Vector3Field, Vector3>("object-rotation", settings.objectRotation);
+            RefreshField<Toggle, bool>("auto-center", settings.autoCenter);
+            RefreshField<Toggle, bool>("auto-fit", settings.autoFit);
+            
+            RefreshPointLightsUI();
+            UpdatePrefabCount();
+        }
+        
+        private void RefreshField<TField, TValue>(string fieldName, TValue value)
+            where TField : BaseField<TValue>
+        {
+            var field = root.Q<TField>(fieldName);
+            if (field != null)
+                field.value = value;
+        }
+        
+        private void ShowPreviewWindow(Texture2D previewTexture)
+        {
+            var previewWindow = GetWindow<IconPreviewWindow>();
+            previewWindow.titleContent = new GUIContent("Icon Preview");
+            previewWindow.SetPreviewTexture(previewTexture);
+            previewWindow.Show();
+        }
+    }
+    
+    public class IconPreviewWindow : EditorWindow
+    {
+        private Texture2D previewTexture;
+        
+        public void SetPreviewTexture(Texture2D texture)
+        {
+            previewTexture = texture;
+            minSize = new Vector2(texture.width + 20, texture.height + 40);
+            maxSize = minSize;
+        }
+        
+        private void OnGUI()
+        {
+            if (previewTexture != null)
+            {
+                GUILayout.Label("Icon Preview:", EditorStyles.boldLabel);
+                GUILayout.Space(5);
+                
+                var rect = GUILayoutUtility.GetRect(previewTexture.width, previewTexture.height);
+                GUI.DrawTexture(rect, previewTexture, ScaleMode.ScaleToFit, true);
+                
+                GUILayout.Space(10);
+                if (GUILayout.Button("Save Preview"))
+                {
+                    SavePreview();
+                }
+            }
+        }
+        
+        private void SavePreview()
+        {
+            if (previewTexture == null) return;
+            
+            var path = EditorUtility.SaveFilePanel("Save Preview", "Assets", "IconPreview", "png");
+            if (!string.IsNullOrEmpty(path))
+            {
+                var pngData = previewTexture.EncodeToPNG();
+                System.IO.File.WriteAllBytes(path, pngData);
+                
+                if (path.StartsWith(Application.dataPath))
+                {
+                    AssetDatabase.Refresh();
+                }
+                
+                Debug.Log($"Preview saved to: {path}");
+            }
+        }
+    }
     }
 }

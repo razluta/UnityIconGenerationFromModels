@@ -65,6 +65,13 @@
             
             <!-- Action Buttons -->
             <ui:VisualElement style="margin-top: 20px;">
+                <ui:Label text="Preview & Configuration" style="font-style: bold; margin-bottom: 5px;" />
+                <ui:VisualElement style="flex-direction: row; margin-bottom: 5px;">
+                    <ui:Button text="Setup Scene Mockup" name="setup-mockup-button" style="height: 30px; flex: 1; margin-right: 5px;" />
+                    <ui:Button text="Capture Preview" name="capture-preview-button" style="height: 30px; flex: 1; margin-left: 5px;" />
+                </ui:VisualElement>
+                <ui:Button text="Collect Scene Configuration" name="collect-config-button" style="height: 30px; margin-bottom: 10px;" />
+                
                 <ui:Button text="Preview Settings" name="preview-button" style="height: 30px; margin-bottom: 5px;" />
                 <ui:Button text="Generate Icons" name="generate-button" style="height: 40px; font-size: 14px; font-style: bold;" />
                 <ui:Label text="" name="status-label" style="margin-top: 10px; -unity-text-align: middle-center;" />
