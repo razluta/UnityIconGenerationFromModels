@@ -1,14 +1,14 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="True">
     <ui:ScrollView>
         <ui:VisualElement style="padding: 10px;">
-            <ui:Label text="Unity Icon Generation From Models" style="font-size: 18px; font-style: bold; margin-bottom: 10px; -unity-text-align: middle-center;" />
+            <ui:Label text="Unity Icon Generation From Models" style="font-size: 18px; -unity-font-style: bold; margin-bottom: 10px; -unity-text-align: middle-center;" />
             
             <!-- Input Settings -->
             <ui:Foldout text="Input Settings" value="true" name="input-foldout">
                 <ui:VisualElement style="margin-left: 15px; margin-top: 5px;">
                     <uie:ObjectField label="Input Folder" name="input-folder" type="UnityEditor.DefaultAsset" />
                     <ui:TextField label="Prefab Name Prefix" name="prefab-prefix" />
-                    <ui:Label text="Found Prefabs: 0" name="prefab-count" style="margin-top: 5px; font-style: italic;" />
+                    <ui:Label text="Found Prefabs: 0" name="prefab-count" style="margin-top: 5px; -unity-font-style: italic;" />
                 </ui:VisualElement>
             </ui:Foldout>
             
@@ -34,17 +34,17 @@
             <!-- Lighting Settings -->
             <ui:Foldout text="Lighting Settings" value="false" name="lighting-foldout">
                 <ui:VisualElement style="margin-left: 15px; margin-top: 5px;">
-                    <ui:Label text="Main Light" style="font-style: bold;" />
+                    <ui:Label text="Main Light" style="-unity-font-style: bold;" />
                     <uie:Vector3Field label="Direction" name="main-light-direction" />
                     <uie:ColorField label="Color" name="main-light-color" />
                     <ui:FloatField label="Intensity" name="main-light-intensity" />
                     
-                    <ui:Label text="Fill Light" style="font-style: bold; margin-top: 10px;" />
+                    <ui:Label text="Fill Light" style="-unity-font-style: bold; margin-top: 10px;" />
                     <uie:Vector3Field label="Direction" name="fill-light-direction" />
                     <uie:ColorField label="Color" name="fill-light-color" />
                     <ui:FloatField label="Intensity" name="fill-light-intensity" />
                     
-                    <ui:Label text="Additional Point Lights" style="font-style: bold; margin-top: 10px;" />
+                    <ui:Label text="Additional Point Lights" style="-unity-font-style: bold; margin-top: 10px;" />
                     <ui:VisualElement name="point-lights-container" style="margin-top: 5px;">
                         <!-- Point lights will be dynamically added here -->
                     </ui:VisualElement>
@@ -63,17 +63,17 @@
                 </ui:VisualElement>
             </ui:Foldout>
             
-            <!-- Action Buttons -->
+            <!-- Preview & Configuration Section -->
             <ui:VisualElement style="margin-top: 20px;">
-                <ui:Label text="Preview & Configuration" style="font-style: bold; margin-bottom: 5px;" />
+                <ui:Label text="Preview &amp; Configuration" style="-unity-font-style: bold; margin-bottom: 5px;" />
                 <ui:VisualElement style="flex-direction: row; margin-bottom: 5px;">
-                    <ui:Button text="Setup Scene Mockup" name="setup-mockup-button" style="height: 30px; flex: 1; margin-right: 5px;" />
-                    <ui:Button text="Capture Preview" name="capture-preview-button" style="height: 30px; flex: 1; margin-left: 5px;" />
+                    <ui:Button text="Setup Scene Mockup" name="setup-mockup-button" style="height: 30px; flex-grow: 1; margin-right: 2px;" />
+                    <ui:Button text="Capture Preview" name="capture-preview-button" style="height: 30px; flex-grow: 1; margin-left: 2px;" />
                 </ui:VisualElement>
                 <ui:Button text="Collect Scene Configuration" name="collect-config-button" style="height: 30px; margin-bottom: 10px;" />
                 
                 <ui:Button text="Preview Settings" name="preview-button" style="height: 30px; margin-bottom: 5px;" />
-                <ui:Button text="Generate Icons" name="generate-button" style="height: 40px; font-size: 14px; font-style: bold;" />
+                <ui:Button text="Generate Icons" name="generate-button" style="height: 40px; font-size: 14px; -unity-font-style: bold;" />
                 <ui:Label text="" name="status-label" style="margin-top: 10px; -unity-text-align: middle-center;" />
             </ui:VisualElement>
             
