@@ -334,7 +334,10 @@ namespace Razluta.UnityIconGenerationFromModels
             
             // Bind buttons
             if (generateButton != null)
+            {
                 generateButton.clicked += GenerateIcons;
+                generateButton.SetEnabled(true); // Ensure button starts enabled
+            }
             if (previewButton != null)
                 previewButton.clicked += PreviewSettings;
             if (addPointLightButton != null)
@@ -621,6 +624,11 @@ namespace Razluta.UnityIconGenerationFromModels
         
         private void GenerateIcons()
         {
+            Debug.Log("Generate Icons button clicked");
+            Debug.Log($"Input folder: '{settings.inputFolderPath}' (Valid: {AssetDatabase.IsValidFolder(settings.inputFolderPath)})");
+            Debug.Log($"Output folder: '{settings.outputFolderPath}'");
+            Debug.Log($"Prefab prefix: '{settings.prefabNamePrefix}'");
+            
             if (string.IsNullOrEmpty(settings.inputFolderPath) || !AssetDatabase.IsValidFolder(settings.inputFolderPath))
             {
                 EditorUtility.DisplayDialog("Error", "Please select a valid input folder.", "OK");
