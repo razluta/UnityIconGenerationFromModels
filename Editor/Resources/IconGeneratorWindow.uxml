@@ -43,6 +43,12 @@
                     <uie:Vector3Field label="Direction" name="fill-light-direction" />
                     <uie:ColorField label="Color" name="fill-light-color" />
                     <ui:FloatField label="Intensity" name="fill-light-intensity" />
+                    
+                    <ui:Label text="Additional Point Lights" style="font-style: bold; margin-top: 10px;" />
+                    <ui:VisualElement name="point-lights-container" style="margin-top: 5px;">
+                        <!-- Point lights will be dynamically added here -->
+                    </ui:VisualElement>
+                    <ui:Button text="Add Point Light" name="add-point-light-button" style="height: 25px; margin-top: 5px;" />
                 </ui:VisualElement>
             </ui:Foldout>
             

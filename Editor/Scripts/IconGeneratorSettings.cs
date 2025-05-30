@@ -1,8 +1,32 @@
 using UnityEngine;
 using UnityEditor;
+using System.Collections.Generic;
 
 namespace Razluta.UnityIconGenerationFromModels
 {
+    [System.Serializable]
+    public class PointLightSettings
+    {
+        public Vector3 position = new Vector3(2f, 2f, 2f);
+        public Color color = Color.white;
+        public float intensity = 1f;
+        public float range = 10f;
+        public bool enabled = true;
+        
+        public PointLightSettings()
+        {
+        }
+        
+        public PointLightSettings(Vector3 pos, Color col, float intens, float r)
+        {
+            position = pos;
+            color = col;
+            intensity = intens;
+            range = r;
+            enabled = true;
+        }
+    }
+
     [System.Serializable]
     public class IconGeneratorSettings
     {
@@ -28,6 +52,9 @@ namespace Razluta.UnityIconGenerationFromModels
         public Vector3 fillLightDirection = new Vector3(30, -30, 180);
         public Color fillLightColor = Color.white;
         public float fillLightIntensity = 0.5f;
+        
+        [Header("Additional Point Lights")]
+        public List<PointLightSettings> pointLights = new List<PointLightSettings>();
         
         [Header("Advanced Settings")]
         public float objectScale = 1f;
@@ -55,6 +82,18 @@ namespace Razluta.UnityIconGenerationFromModels
             EditorPrefs.SetString("UnityIconGen_FillLightDir", JsonUtility.ToJson(fillLightDirection));
             EditorPrefs.SetString("UnityIconGen_FillLightColor", JsonUtility.ToJson(fillLightColor));
             EditorPrefs.SetFloat("UnityIconGen_FillLightIntensity", fillLightIntensity);
+            
+            // Save point lights
+            EditorPrefs.SetInt("UnityIconGen_PointLightCount", pointLights.Count);
+            for (int i = 0; i < pointLights.Count; i++)
+            {
+                var light = pointLights[i];
+                EditorPrefs.SetString($"UnityIconGen_PointLight_{i}_Position", JsonUtility.ToJson(light.position));
+                EditorPrefs.SetString($"UnityIconGen_PointLight_{i}_Color", JsonUtility.ToJson(light.color));
+                EditorPrefs.SetFloat($"UnityIconGen_PointLight_{i}_Intensity", light.intensity);
+                EditorPrefs.SetFloat($"UnityIconGen_PointLight_{i}_Range", light.range);
+                EditorPrefs.SetBool($"UnityIconGen_PointLight_{i}_Enabled", light.enabled);
+            }
             
             EditorPrefs.SetFloat("UnityIconGen_ObjectScale", objectScale);
             EditorPrefs.SetString("UnityIconGen_ObjectPos", JsonUtility.ToJson(objectPosition));
@@ -90,6 +129,22 @@ namespace Razluta.UnityIconGenerationFromModels
                 JsonUtility.FromJsonOverwrite(EditorPrefs.GetString("UnityIconGen_FillLightColor"), fillLightColor);
             fillLightIntensity = EditorPrefs.GetFloat("UnityIconGen_FillLightIntensity", fillLightIntensity);
             
+            // Load point lights
+            int pointLightCount = EditorPrefs.GetInt("UnityIconGen_PointLightCount", 0);
+            pointLights.Clear();
+            for (int i = 0; i < pointLightCount; i++)
+            {
+                var light = new PointLightSettings();
+                if (EditorPrefs.HasKey($"UnityIconGen_PointLight_{i}_Position"))
+                    JsonUtility.FromJsonOverwrite(EditorPrefs.GetString($"UnityIconGen_PointLight_{i}_Position"), light.position);
+                if (EditorPrefs.HasKey($"UnityIconGen_PointLight_{i}_Color"))
+                    JsonUtility.FromJsonOverwrite(EditorPrefs.GetString($"UnityIconGen_PointLight_{i}_Color"), light.color);
+                light.intensity = EditorPrefs.GetFloat($"UnityIconGen_PointLight_{i}_Intensity", 1f);
+                light.range = EditorPrefs.GetFloat($"UnityIconGen_PointLight_{i}_Range", 10f);
+                light.enabled = EditorPrefs.GetBool($"UnityIconGen_PointLight_{i}_Enabled", true);
+                pointLights.Add(light);
+            }
+            
             objectScale = EditorPrefs.GetFloat("UnityIconGen_ObjectScale", objectScale);
             if (EditorPrefs.HasKey("UnityIconGen_ObjectPos"))
                 JsonUtility.FromJsonOverwrite(EditorPrefs.GetString("UnityIconGen_ObjectPos"), objectPosition);
@@ -97,6 +152,21 @@ namespace Razluta.UnityIconGenerationFromModels
                 JsonUtility.FromJsonOverwrite(EditorPrefs.GetString("UnityIconGen_ObjectRot"), objectRotation);
             autoCenter = EditorPrefs.GetBool("UnityIconGen_AutoCenter", autoCenter);
             autoFit = EditorPrefs.GetBool("UnityIconGen_AutoFit", autoFit);
+        }
+        
+        public void AddPointLight()
+        {
+            pointLights.Add(new PointLightSettings());
+            SaveToPrefs();
+        }
+        
+        public void RemovePointLight(int index)
+        {
+            if (index >= 0 && index < pointLights.Count)
+            {
+                pointLights.RemoveAt(index);
+                SaveToPrefs();
+            }
         }
     }
 }

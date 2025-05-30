@@ -1,4 +1,85 @@
-using UnityEditor;
+prefabCountLabel.text = $"Found Prefabs: {count}";
+        }
+        
+        private void AddPointLight()
+        {
+            settings.AddPointLight();
+            RefreshPointLightsUI();
+        }
+        
+        private void RemovePointLight(int index)
+        {
+            settings.RemovePointLight(index);
+            RefreshPointLightsUI();
+        }
+        
+        private void RefreshPointLightsUI()
+        {
+            if (pointLightsContainer == null) return;
+            
+            // Clear existing UI
+            pointLightsContainer.Clear();
+            
+            // Add UI for each point light
+            for (int i = 0; i < settings.pointLights.Count; i++)
+            {
+                CreatePointLightUI(i);
+            }
+        }
+        
+        private void CreatePointLightUI(int index)
+        {
+            var pointLight = settings.pointLights[index];
+            
+            // Container for this point light
+            var container = new VisualElement();
+            container.style.marginBottom = 10;
+            container.style.paddingLeft = 10;
+            container.style.paddingRight = 10;
+            container.style.paddingTop = 5;
+            container.style.paddingBottom = 5;
+            container.style.backgroundColor = new Color(0.3f, 0.3f, 0.3f, 0.2f);
+            container.style.borderTopLeftRadius = 4;
+            container.style.borderTopRightRadius = 4;
+            container.style.borderBottomLeftRadius = 4;
+            container.style.borderBottomRightRadius = 4;
+            
+            // Header with title and remove button
+            var header = new VisualElement();
+            header.style.flexDirection = FlexDirection.Row;
+            header.style.justifyContent = Justify.SpaceBetween;
+            header.style.alignItems = Align.Center;
+            container.Add(header);
+            
+            var title = new Label($"Point Light {index + 1}");
+            title.style.unityFontStyleAndWeight = FontStyle.Bold;
+            header.Add(title);
+            
+            var removeButton = new Button(() => RemovePointLight(index)) { text = "Remove" };
+            removeButton.style.height = 20;
+            removeButton.style.width = 60;
+            header.Add(removeButton);
+            
+            // Enabled toggle
+            var enabledToggle = new Toggle("Enabled");
+            enabledToggle.value = pointLight.enabled;
+            enabledToggle.RegisterValueChangedCallback(evt => {
+                pointLight.enabled = evt.newValue;
+                settings.SaveToPrefs();
+            });
+            container.Add(enabledToggle);
+            
+            // Position field
+            var positionField = new Vector3Field("Position");
+            positionField.value = pointLight.position;
+            positionField.RegisterValueChangedCallback(evt => {
+                pointLight.position = evt.newValue;
+                settings.SaveToPrefs();
+            });
+            container.Add(positionField);
+            
+            // Color field
+            var colorField = new ColorField("Color");using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 using UnityEditor.UIElements;
@@ -14,6 +95,8 @@ namespace Razluta.UnityIconGenerationFromModels
         private Label statusLabel;
         private Button generateButton;
         private Button previewButton;
+        private VisualElement pointLightsContainer;
+        private Button addPointLightButton;
         
         [MenuItem("Tools/Razluta/Unity Icon Generation From Models")]
         public static void ShowWindow()
@@ -42,6 +125,7 @@ namespace Razluta.UnityIconGenerationFromModels
             
             BindUIElements();
             UpdatePrefabCount();
+            RefreshPointLightsUI();
         }
         
         private void CreateGUIFallback()
@@ -136,6 +220,26 @@ namespace Razluta.UnityIconGenerationFromModels
             autoFit.name = "auto-fit";
             advancedFoldout.Add(autoFit);
             
+            // Point Lights Container (for fallback)
+            var lightingFoldout = new Foldout { text = "Lighting Settings", value = false };
+            container.Add(lightingFoldout);
+            
+            var pointLightsLabel = new Label("Additional Point Lights");
+            pointLightsLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            pointLightsLabel.style.marginTop = 10;
+            lightingFoldout.Add(pointLightsLabel);
+            
+            pointLightsContainer = new VisualElement();
+            pointLightsContainer.name = "point-lights-container";
+            pointLightsContainer.style.marginTop = 5;
+            lightingFoldout.Add(pointLightsContainer);
+            
+            addPointLightButton = new Button(() => AddPointLight()) { text = "Add Point Light" };
+            addPointLightButton.name = "add-point-light-button";
+            addPointLightButton.style.height = 25;
+            addPointLightButton.style.marginTop = 5;
+            lightingFoldout.Add(addPointLightButton);
+            
             // Buttons
             previewButton = new Button(() => PreviewSettings()) { text = "Preview Settings" };
             previewButton.name = "preview-button";
@@ -167,6 +271,8 @@ namespace Razluta.UnityIconGenerationFromModels
             statusLabel = root.Q<Label>("status-label");
             generateButton = root.Q<Button>("generate-button");
             previewButton = root.Q<Button>("preview-button");
+            pointLightsContainer = root.Q<VisualElement>("point-lights-container");
+            addPointLightButton = root.Q<Button>("add-point-light-button");
             
             // Bind input settings
             var inputFolder = root.Q<ObjectField>("input-folder");
@@ -233,6 +339,8 @@ namespace Razluta.UnityIconGenerationFromModels
                 generateButton.clicked += GenerateIcons;
             if (previewButton != null)
                 previewButton.clicked += PreviewSettings;
+            if (addPointLightButton != null)
+                addPointLightButton.clicked += AddPointLight;
         }
         
         private void BindUIElementsFallback()

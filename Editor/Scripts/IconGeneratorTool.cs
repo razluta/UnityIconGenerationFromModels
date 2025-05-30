@@ -18,6 +18,7 @@ namespace Razluta.UnityIconGenerationFromModels
         private Camera renderCamera;
         private Light mainLight;
         private Light fillLight;
+        private List<Light> pointLights = new List<Light>();
         private GameObject currentObject;
         
         public UnityIconGenerationTool(IconGeneratorSettings settings)
@@ -230,7 +231,25 @@ namespace Razluta.UnityIconGenerationFromModels
             fillLight.intensity = settings.fillLightIntensity;
             fillLight.transform.rotation = Quaternion.Euler(settings.fillLightDirection);
             
-            Debug.Log("Render scene setup complete.");
+            // Setup additional point lights
+            pointLights.Clear();
+            for (int i = 0; i < settings.pointLights.Count; i++)
+            {
+                var pointLightSettings = settings.pointLights[i];
+                if (!pointLightSettings.enabled) continue;
+                
+                var pointLightGO = new GameObject($"PointLight_{i}");
+                var pointLight = pointLightGO.AddComponent<Light>();
+                pointLight.type = LightType.Point;
+                pointLight.color = pointLightSettings.color;
+                pointLight.intensity = pointLightSettings.intensity;
+                pointLight.range = pointLightSettings.range;
+                pointLight.transform.position = pointLightSettings.position;
+                
+                pointLights.Add(pointLight);
+            }
+            
+            Debug.Log($"Render scene setup complete with {pointLights.Count} additional point lights.");
         }
         
         private void GenerateIconForPrefab(GameObject prefab)
