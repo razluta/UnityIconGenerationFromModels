@@ -1,85 +1,4 @@
-prefabCountLabel.text = $"Found Prefabs: {count}";
-        }
-        
-        private void AddPointLight()
-        {
-            settings.AddPointLight();
-            RefreshPointLightsUI();
-        }
-        
-        private void RemovePointLight(int index)
-        {
-            settings.RemovePointLight(index);
-            RefreshPointLightsUI();
-        }
-        
-        private void RefreshPointLightsUI()
-        {
-            if (pointLightsContainer == null) return;
-            
-            // Clear existing UI
-            pointLightsContainer.Clear();
-            
-            // Add UI for each point light
-            for (int i = 0; i < settings.pointLights.Count; i++)
-            {
-                CreatePointLightUI(i);
-            }
-        }
-        
-        private void CreatePointLightUI(int index)
-        {
-            var pointLight = settings.pointLights[index];
-            
-            // Container for this point light
-            var container = new VisualElement();
-            container.style.marginBottom = 10;
-            container.style.paddingLeft = 10;
-            container.style.paddingRight = 10;
-            container.style.paddingTop = 5;
-            container.style.paddingBottom = 5;
-            container.style.backgroundColor = new Color(0.3f, 0.3f, 0.3f, 0.2f);
-            container.style.borderTopLeftRadius = 4;
-            container.style.borderTopRightRadius = 4;
-            container.style.borderBottomLeftRadius = 4;
-            container.style.borderBottomRightRadius = 4;
-            
-            // Header with title and remove button
-            var header = new VisualElement();
-            header.style.flexDirection = FlexDirection.Row;
-            header.style.justifyContent = Justify.SpaceBetween;
-            header.style.alignItems = Align.Center;
-            container.Add(header);
-            
-            var title = new Label($"Point Light {index + 1}");
-            title.style.unityFontStyleAndWeight = FontStyle.Bold;
-            header.Add(title);
-            
-            var removeButton = new Button(() => RemovePointLight(index)) { text = "Remove" };
-            removeButton.style.height = 20;
-            removeButton.style.width = 60;
-            header.Add(removeButton);
-            
-            // Enabled toggle
-            var enabledToggle = new Toggle("Enabled");
-            enabledToggle.value = pointLight.enabled;
-            enabledToggle.RegisterValueChangedCallback(evt => {
-                pointLight.enabled = evt.newValue;
-                settings.SaveToPrefs();
-            });
-            container.Add(enabledToggle);
-            
-            // Position field
-            var positionField = new Vector3Field("Position");
-            positionField.value = pointLight.position;
-            positionField.RegisterValueChangedCallback(evt => {
-                pointLight.position = evt.newValue;
-                settings.SaveToPrefs();
-            });
-            container.Add(positionField);
-            
-            // Color field
-            var colorField = new ColorField("Color");using UnityEditor;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 using UnityEditor.UIElements;
@@ -204,26 +123,44 @@ namespace Razluta.UnityIconGenerationFromModels
             backgroundColor.name = "background-color";
             cameraFoldout.Add(backgroundColor);
             
-            // Advanced Settings
-            var advancedFoldout = new Foldout { text = "Advanced Settings", value = false };
-            container.Add(advancedFoldout);
-            
-            var objectScale = new FloatField("Object Scale");
-            objectScale.name = "object-scale";
-            advancedFoldout.Add(objectScale);
-            
-            var autoCenter = new Toggle("Auto Center");
-            autoCenter.name = "auto-center";
-            advancedFoldout.Add(autoCenter);
-            
-            var autoFit = new Toggle("Auto Fit");
-            autoFit.name = "auto-fit";
-            advancedFoldout.Add(autoFit);
-            
-            // Point Lights Container (for fallback)
+            // Lighting Settings
             var lightingFoldout = new Foldout { text = "Lighting Settings", value = false };
             container.Add(lightingFoldout);
             
+            var mainLightLabel = new Label("Main Light");
+            mainLightLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            lightingFoldout.Add(mainLightLabel);
+            
+            var mainLightDirection = new Vector3Field("Direction");
+            mainLightDirection.name = "main-light-direction";
+            lightingFoldout.Add(mainLightDirection);
+            
+            var mainLightColor = new ColorField("Color");
+            mainLightColor.name = "main-light-color";
+            lightingFoldout.Add(mainLightColor);
+            
+            var mainLightIntensity = new FloatField("Intensity");
+            mainLightIntensity.name = "main-light-intensity";
+            lightingFoldout.Add(mainLightIntensity);
+            
+            var fillLightLabel = new Label("Fill Light");
+            fillLightLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            fillLightLabel.style.marginTop = 10;
+            lightingFoldout.Add(fillLightLabel);
+            
+            var fillLightDirection = new Vector3Field("Direction");
+            fillLightDirection.name = "fill-light-direction";
+            lightingFoldout.Add(fillLightDirection);
+            
+            var fillLightColor = new ColorField("Color");
+            fillLightColor.name = "fill-light-color";
+            lightingFoldout.Add(fillLightColor);
+            
+            var fillLightIntensity = new FloatField("Intensity");
+            fillLightIntensity.name = "fill-light-intensity";
+            lightingFoldout.Add(fillLightIntensity);
+            
+            // Point Lights Section
             var pointLightsLabel = new Label("Additional Point Lights");
             pointLightsLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
             pointLightsLabel.style.marginTop = 10;
@@ -239,6 +176,30 @@ namespace Razluta.UnityIconGenerationFromModels
             addPointLightButton.style.height = 25;
             addPointLightButton.style.marginTop = 5;
             lightingFoldout.Add(addPointLightButton);
+            
+            // Advanced Settings
+            var advancedFoldout = new Foldout { text = "Advanced Settings", value = false };
+            container.Add(advancedFoldout);
+            
+            var objectScale = new FloatField("Object Scale");
+            objectScale.name = "object-scale";
+            advancedFoldout.Add(objectScale);
+            
+            var objectPosition = new Vector3Field("Object Position");
+            objectPosition.name = "object-position";
+            advancedFoldout.Add(objectPosition);
+            
+            var objectRotation = new Vector3Field("Object Rotation");
+            objectRotation.name = "object-rotation";
+            advancedFoldout.Add(objectRotation);
+            
+            var autoCenter = new Toggle("Auto Center");
+            autoCenter.name = "auto-center";
+            advancedFoldout.Add(autoCenter);
+            
+            var autoFit = new Toggle("Auto Fit");
+            autoFit.name = "auto-fit";
+            advancedFoldout.Add(autoFit);
             
             // Buttons
             previewButton = new Button(() => PreviewSettings()) { text = "Preview Settings" };
@@ -380,96 +341,24 @@ namespace Razluta.UnityIconGenerationFromModels
                 });
             }
             
-            var iconWidth = root.Q<IntegerField>("icon-width");
-            if (iconWidth != null)
-            {
-                iconWidth.value = settings.iconWidth;
-                iconWidth.RegisterValueChangedCallback(evt => {
-                    settings.iconWidth = evt.newValue;
-                    settings.SaveToPrefs();
-                });
-            }
-            
-            var iconHeight = root.Q<IntegerField>("icon-height");
-            if (iconHeight != null)
-            {
-                iconHeight.value = settings.iconHeight;
-                iconHeight.RegisterValueChangedCallback(evt => {
-                    settings.iconHeight = evt.newValue;
-                    settings.SaveToPrefs();
-                });
-            }
-            
-            // Bind camera settings
-            var cameraPosition = root.Q<Vector3Field>("camera-position");
-            if (cameraPosition != null)
-            {
-                cameraPosition.value = settings.cameraPosition;
-                cameraPosition.RegisterValueChangedCallback(evt => {
-                    settings.cameraPosition = evt.newValue;
-                    settings.SaveToPrefs();
-                });
-            }
-            
-            var cameraRotation = root.Q<Vector3Field>("camera-rotation");
-            if (cameraRotation != null)
-            {
-                cameraRotation.value = settings.cameraRotation;
-                cameraRotation.RegisterValueChangedCallback(evt => {
-                    settings.cameraRotation = evt.newValue;
-                    settings.SaveToPrefs();
-                });
-            }
-            
-            var cameraFov = root.Q<FloatField>("camera-fov");
-            if (cameraFov != null)
-            {
-                cameraFov.value = settings.cameraFOV;
-                cameraFov.RegisterValueChangedCallback(evt => {
-                    settings.cameraFOV = evt.newValue;
-                    settings.SaveToPrefs();
-                });
-            }
-            
-            var backgroundColor = root.Q<ColorField>("background-color");
-            if (backgroundColor != null)
-            {
-                backgroundColor.value = settings.backgroundColor;
-                backgroundColor.RegisterValueChangedCallback(evt => {
-                    settings.backgroundColor = evt.newValue;
-                    settings.SaveToPrefs();
-                });
-            }
-            
-            var objectScale = root.Q<FloatField>("object-scale");
-            if (objectScale != null)
-            {
-                objectScale.value = settings.objectScale;
-                objectScale.RegisterValueChangedCallback(evt => {
-                    settings.objectScale = evt.newValue;
-                    settings.SaveToPrefs();
-                });
-            }
-            
-            var autoCenter = root.Q<Toggle>("auto-center");
-            if (autoCenter != null)
-            {
-                autoCenter.value = settings.autoCenter;
-                autoCenter.RegisterValueChangedCallback(evt => {
-                    settings.autoCenter = evt.newValue;
-                    settings.SaveToPrefs();
-                });
-            }
-            
-            var autoFit = root.Q<Toggle>("auto-fit");
-            if (autoFit != null)
-            {
-                autoFit.value = settings.autoFit;
-                autoFit.RegisterValueChangedCallback(evt => {
-                    settings.autoFit = evt.newValue;
-                    settings.SaveToPrefs();
-                });
-            }
+            // Bind all other fields using the helper method
+            BindField<IntegerField, int>("icon-width", settings.iconWidth, val => settings.iconWidth = val);
+            BindField<IntegerField, int>("icon-height", settings.iconHeight, val => settings.iconHeight = val);
+            BindField<Vector3Field, Vector3>("camera-position", settings.cameraPosition, val => settings.cameraPosition = val);
+            BindField<Vector3Field, Vector3>("camera-rotation", settings.cameraRotation, val => settings.cameraRotation = val);
+            BindField<FloatField, float>("camera-fov", settings.cameraFOV, val => settings.cameraFOV = val);
+            BindField<ColorField, Color>("background-color", settings.backgroundColor, val => settings.backgroundColor = val);
+            BindField<Vector3Field, Vector3>("main-light-direction", settings.mainLightDirection, val => settings.mainLightDirection = val);
+            BindField<ColorField, Color>("main-light-color", settings.mainLightColor, val => settings.mainLightColor = val);
+            BindField<FloatField, float>("main-light-intensity", settings.mainLightIntensity, val => settings.mainLightIntensity = val);
+            BindField<Vector3Field, Vector3>("fill-light-direction", settings.fillLightDirection, val => settings.fillLightDirection = val);
+            BindField<ColorField, Color>("fill-light-color", settings.fillLightColor, val => settings.fillLightColor = val);
+            BindField<FloatField, float>("fill-light-intensity", settings.fillLightIntensity, val => settings.fillLightIntensity = val);
+            BindField<FloatField, float>("object-scale", settings.objectScale, val => settings.objectScale = val);
+            BindField<Vector3Field, Vector3>("object-position", settings.objectPosition, val => settings.objectPosition = val);
+            BindField<Vector3Field, Vector3>("object-rotation", settings.objectRotation, val => settings.objectRotation = val);
+            BindField<Toggle, bool>("auto-center", settings.autoCenter, val => settings.autoCenter = val);
+            BindField<Toggle, bool>("auto-fit", settings.autoFit, val => settings.autoFit = val);
         }
         
         private void BindField<TField, TValue>(string fieldName, TValue initialValue, System.Action<TValue> onValueChanged)
@@ -508,6 +397,113 @@ namespace Razluta.UnityIconGenerationFromModels
             prefabCountLabel.text = $"Found Prefabs: {count}";
         }
         
+        private void AddPointLight()
+        {
+            settings.AddPointLight();
+            RefreshPointLightsUI();
+        }
+        
+        private void RemovePointLight(int index)
+        {
+            settings.RemovePointLight(index);
+            RefreshPointLightsUI();
+        }
+        
+        private void RefreshPointLightsUI()
+        {
+            if (pointLightsContainer == null) return;
+            
+            // Clear existing UI
+            pointLightsContainer.Clear();
+            
+            // Add UI for each point light
+            for (int i = 0; i < settings.pointLights.Count; i++)
+            {
+                CreatePointLightUI(i);
+            }
+        }
+        
+        private void CreatePointLightUI(int index)
+        {
+            var pointLight = settings.pointLights[index];
+            
+            // Container for this point light
+            var container = new VisualElement();
+            container.style.marginBottom = 10;
+            container.style.paddingLeft = 10;
+            container.style.paddingRight = 10;
+            container.style.paddingTop = 5;
+            container.style.paddingBottom = 5;
+            container.style.backgroundColor = new Color(0.3f, 0.3f, 0.3f, 0.2f);
+            container.style.borderTopLeftRadius = 4;
+            container.style.borderTopRightRadius = 4;
+            container.style.borderBottomLeftRadius = 4;
+            container.style.borderBottomRightRadius = 4;
+            
+            // Header with title and remove button
+            var header = new VisualElement();
+            header.style.flexDirection = FlexDirection.Row;
+            header.style.justifyContent = Justify.SpaceBetween;
+            header.style.alignItems = Align.Center;
+            container.Add(header);
+            
+            var title = new Label($"Point Light {index + 1}");
+            title.style.unityFontStyleAndWeight = FontStyle.Bold;
+            header.Add(title);
+            
+            var removeButton = new Button(() => RemovePointLight(index)) { text = "Remove" };
+            removeButton.style.height = 20;
+            removeButton.style.width = 60;
+            header.Add(removeButton);
+            
+            // Enabled toggle
+            var enabledToggle = new Toggle("Enabled");
+            enabledToggle.value = pointLight.enabled;
+            enabledToggle.RegisterValueChangedCallback(evt => {
+                pointLight.enabled = evt.newValue;
+                settings.SaveToPrefs();
+            });
+            container.Add(enabledToggle);
+            
+            // Position field
+            var positionField = new Vector3Field("Position");
+            positionField.value = pointLight.position;
+            positionField.RegisterValueChangedCallback(evt => {
+                pointLight.position = evt.newValue;
+                settings.SaveToPrefs();
+            });
+            container.Add(positionField);
+            
+            // Color field
+            var colorField = new ColorField("Color");
+            colorField.value = pointLight.color;
+            colorField.RegisterValueChangedCallback(evt => {
+                pointLight.color = evt.newValue;
+                settings.SaveToPrefs();
+            });
+            container.Add(colorField);
+            
+            // Intensity field
+            var intensityField = new FloatField("Intensity");
+            intensityField.value = pointLight.intensity;
+            intensityField.RegisterValueChangedCallback(evt => {
+                pointLight.intensity = evt.newValue;
+                settings.SaveToPrefs();
+            });
+            container.Add(intensityField);
+            
+            // Range field
+            var rangeField = new FloatField("Range");
+            rangeField.value = pointLight.range;
+            rangeField.RegisterValueChangedCallback(evt => {
+                pointLight.range = evt.newValue;
+                settings.SaveToPrefs();
+            });
+            container.Add(rangeField);
+            
+            pointLightsContainer.Add(container);
+        }
+        
         private void PreviewSettings()
         {
             var message = $"Current Settings:\n\n" +
@@ -518,7 +514,8 @@ namespace Razluta.UnityIconGenerationFromModels
                          $"Camera Position: {settings.cameraPosition}\n" +
                          $"Camera FOV: {settings.cameraFOV}°\n" +
                          $"Auto Center: {settings.autoCenter}\n" +
-                         $"Auto Fit: {settings.autoFit}";
+                         $"Auto Fit: {settings.autoFit}\n" +
+                         $"Point Lights: {settings.pointLights.Count}";
             
             EditorUtility.DisplayDialog("Unity Icon Generation Settings", message, "OK");
         }
