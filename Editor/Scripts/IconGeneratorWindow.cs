@@ -25,7 +25,7 @@ namespace Razluta.UnityIconGenerationFromModels
         {
             var window = GetWindow<UnityIconGenerationWindow>();
             window.titleContent = new GUIContent("Unity Icon Generation");
-            window.minSize = new Vector2(400, 600);
+            window.minSize = new Vector2(400, 700);
         }
         
         public void CreateGUI()
@@ -180,38 +180,6 @@ namespace Razluta.UnityIconGenerationFromModels
             addPointLightButton.style.marginTop = 5;
             lightingFoldout.Add(addPointLightButton);
             
-            // Preview & Configuration Buttons
-            var previewConfigLabel = new Label("Preview & Configuration");
-            previewConfigLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
-            previewConfigLabel.style.marginTop = 20;
-            previewConfigLabel.style.marginBottom = 5;
-            container.Add(previewConfigLabel);
-            
-            var buttonRow = new VisualElement();
-            buttonRow.style.flexDirection = FlexDirection.Row;
-            buttonRow.style.marginBottom = 5;
-            container.Add(buttonRow);
-            
-            setupMockupButton = new Button(() => SetupSceneMockup()) { text = "Setup Scene Mockup" };
-            setupMockupButton.name = "setup-mockup-button";
-            setupMockupButton.style.height = 30;
-            setupMockupButton.style.flexGrow = 1;
-            setupMockupButton.style.marginRight = 5;
-            buttonRow.Add(setupMockupButton);
-            
-            capturePreviewButton = new Button(() => CapturePreview()) { text = "Capture Preview" };
-            capturePreviewButton.name = "capture-preview-button";
-            capturePreviewButton.style.height = 30;
-            capturePreviewButton.style.flexGrow = 1;
-            capturePreviewButton.style.marginLeft = 5;
-            buttonRow.Add(capturePreviewButton);
-            
-            collectConfigButton = new Button(() => CollectSceneConfiguration()) { text = "Collect Scene Configuration" };
-            collectConfigButton.name = "collect-config-button";
-            collectConfigButton.style.height = 30;
-            collectConfigButton.style.marginBottom = 10;
-            container.Add(collectConfigButton);
-            
             // Advanced Settings
             var advancedFoldout = new Foldout { text = "Advanced Settings", value = false };
             container.Add(advancedFoldout);
@@ -236,11 +204,42 @@ namespace Razluta.UnityIconGenerationFromModels
             autoFit.name = "auto-fit";
             advancedFoldout.Add(autoFit);
             
-            // Buttons
+            // Preview & Configuration Buttons
+            var previewConfigLabel = new Label("Preview & Configuration");
+            previewConfigLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            previewConfigLabel.style.marginTop = 20;
+            previewConfigLabel.style.marginBottom = 5;
+            container.Add(previewConfigLabel);
+            
+            var buttonRow = new VisualElement();
+            buttonRow.style.flexDirection = FlexDirection.Row;
+            buttonRow.style.marginBottom = 5;
+            container.Add(buttonRow);
+            
+            setupMockupButton = new Button(() => SetupSceneMockup()) { text = "Setup Scene Mockup" };
+            setupMockupButton.name = "setup-mockup-button";
+            setupMockupButton.style.height = 30;
+            setupMockupButton.style.flexGrow = 1;
+            setupMockupButton.style.marginRight = 2;
+            buttonRow.Add(setupMockupButton);
+            
+            capturePreviewButton = new Button(() => CapturePreview()) { text = "Capture Preview" };
+            capturePreviewButton.name = "capture-preview-button";
+            capturePreviewButton.style.height = 30;
+            capturePreviewButton.style.flexGrow = 1;
+            capturePreviewButton.style.marginLeft = 2;
+            buttonRow.Add(capturePreviewButton);
+            
+            collectConfigButton = new Button(() => CollectSceneConfiguration()) { text = "Collect Scene Configuration" };
+            collectConfigButton.name = "collect-config-button";
+            collectConfigButton.style.height = 30;
+            collectConfigButton.style.marginBottom = 10;
+            container.Add(collectConfigButton);
+            
+            // Action Buttons
             previewButton = new Button(() => PreviewSettings()) { text = "Preview Settings" };
             previewButton.name = "preview-button";
             previewButton.style.height = 30;
-            previewButton.style.marginTop = 20;
             previewButton.style.marginBottom = 5;
             container.Add(previewButton);
             
@@ -350,42 +349,7 @@ namespace Razluta.UnityIconGenerationFromModels
         
         private void BindUIElementsFallback()
         {
-            // Get references to UI elements
-            var inputFolder = root.Q<ObjectField>("input-folder");
-            if (inputFolder != null)
-            {
-                inputFolder.value = AssetDatabase.LoadAssetAtPath<DefaultAsset>(settings.inputFolderPath);
-                inputFolder.RegisterValueChangedCallback(evt => {
-                    if (evt.newValue != null)
-                        settings.inputFolderPath = AssetDatabase.GetAssetPath(evt.newValue);
-                    UpdatePrefabCount();
-                    settings.SaveToPrefs();
-                });
-            }
-            
-            var prefabPrefix = root.Q<TextField>("prefab-prefix");
-            if (prefabPrefix != null)
-            {
-                prefabPrefix.value = settings.prefabNamePrefix;
-                prefabPrefix.RegisterValueChangedCallback(evt => {
-                    settings.prefabNamePrefix = evt.newValue;
-                    UpdatePrefabCount();
-                    settings.SaveToPrefs();
-                });
-            }
-            
-            var outputFolder = root.Q<ObjectField>("output-folder");
-            if (outputFolder != null)
-            {
-                outputFolder.value = AssetDatabase.LoadAssetAtPath<DefaultAsset>(settings.outputFolderPath);
-                outputFolder.RegisterValueChangedCallback(evt => {
-                    if (evt.newValue != null)
-                        settings.outputFolderPath = AssetDatabase.GetAssetPath(evt.newValue);
-                    settings.SaveToPrefs();
-                });
-            }
-            
-            // Bind all other fields using the helper method
+            // Bind all fields using the helper method
             BindField<IntegerField, int>("icon-width", settings.iconWidth, val => settings.iconWidth = val);
             BindField<IntegerField, int>("icon-height", settings.iconHeight, val => settings.iconHeight = val);
             BindField<Vector3Field, Vector3>("camera-position", settings.cameraPosition, val => settings.cameraPosition = val);
@@ -548,59 +512,6 @@ namespace Razluta.UnityIconGenerationFromModels
             pointLightsContainer.Add(container);
         }
         
-        private void PreviewSettings()
-        {
-            var message = $"Current Settings:\n\n" +
-                         $"Input Folder: {settings.inputFolderPath}\n" +
-                         $"Prefab Prefix: {settings.prefabNamePrefix}\n" +
-                         $"Output Folder: {settings.outputFolderPath}\n" +
-                         $"Icon Size: {settings.iconWidth}x{settings.iconHeight}\n" +
-                         $"Camera Position: {settings.cameraPosition}\n" +
-                         $"Camera FOV: {settings.cameraFOV}°\n" +
-                         $"Auto Center: {settings.autoCenter}\n" +
-                         $"Auto Fit: {settings.autoFit}\n" +
-                         $"Point Lights: {settings.pointLights.Count}";
-            
-            EditorUtility.DisplayDialog("Unity Icon Generation Settings", message, "OK");
-        }
-        
-        private void GenerateIcons()
-        {
-            if (string.IsNullOrEmpty(settings.inputFolderPath) || !AssetDatabase.IsValidFolder(settings.inputFolderPath))
-            {
-                EditorUtility.DisplayDialog("Error", "Please select a valid input folder.", "OK");
-                return;
-            }
-            
-            if (string.IsNullOrEmpty(settings.outputFolderPath))
-            {
-                EditorUtility.DisplayDialog("Error", "Please select a valid output folder.", "OK");
-                return;
-            }
-            
-            if (string.IsNullOrEmpty(settings.prefabNamePrefix))
-            {
-                EditorUtility.DisplayDialog("Error", "Please enter a prefab name prefix.", "OK");
-                return;
-            }
-            
-            generateButton.SetEnabled(false);
-            statusLabel.text = "Generating icons...";
-            
-            var tool = new UnityIconGenerationTool(settings);
-            tool.GenerateIcons(
-                onProgress: (progress) => {
-                    statusLabel.text = progress;
-                    Repaint();
-                },
-                onComplete: () => {
-                    generateButton.SetEnabled(true);
-                    statusLabel.text = "Icons generated successfully!";
-                    Repaint();
-                }
-            );
-        }
-        
         private void SetupSceneMockup()
         {
             var mockupTool = new SceneMockupTool(settings);
@@ -691,6 +602,59 @@ namespace Razluta.UnityIconGenerationFromModels
             previewWindow.SetPreviewTexture(previewTexture);
             previewWindow.Show();
         }
+        
+        private void PreviewSettings()
+        {
+            var message = $"Current Settings:\n\n" +
+                         $"Input Folder: {settings.inputFolderPath}\n" +
+                         $"Prefab Prefix: {settings.prefabNamePrefix}\n" +
+                         $"Output Folder: {settings.outputFolderPath}\n" +
+                         $"Icon Size: {settings.iconWidth}x{settings.iconHeight}\n" +
+                         $"Camera Position: {settings.cameraPosition}\n" +
+                         $"Camera FOV: {settings.cameraFOV}°\n" +
+                         $"Auto Center: {settings.autoCenter}\n" +
+                         $"Auto Fit: {settings.autoFit}\n" +
+                         $"Point Lights: {settings.pointLights.Count}";
+            
+            EditorUtility.DisplayDialog("Unity Icon Generation Settings", message, "OK");
+        }
+        
+        private void GenerateIcons()
+        {
+            if (string.IsNullOrEmpty(settings.inputFolderPath) || !AssetDatabase.IsValidFolder(settings.inputFolderPath))
+            {
+                EditorUtility.DisplayDialog("Error", "Please select a valid input folder.", "OK");
+                return;
+            }
+            
+            if (string.IsNullOrEmpty(settings.outputFolderPath))
+            {
+                EditorUtility.DisplayDialog("Error", "Please select a valid output folder.", "OK");
+                return;
+            }
+            
+            if (string.IsNullOrEmpty(settings.prefabNamePrefix))
+            {
+                EditorUtility.DisplayDialog("Error", "Please enter a prefab name prefix.", "OK");
+                return;
+            }
+            
+            generateButton.SetEnabled(false);
+            statusLabel.text = "Generating icons...";
+            
+            var tool = new UnityIconGenerationTool(settings);
+            tool.GenerateIcons(
+                onProgress: (progress) => {
+                    statusLabel.text = progress;
+                    Repaint();
+                },
+                onComplete: () => {
+                    generateButton.SetEnabled(true);
+                    statusLabel.text = "Icons generated successfully!";
+                    Repaint();
+                }
+            );
+        }
     }
     
     public class IconPreviewWindow : EditorWindow
@@ -700,7 +664,7 @@ namespace Razluta.UnityIconGenerationFromModels
         public void SetPreviewTexture(Texture2D texture)
         {
             previewTexture = texture;
-            minSize = new Vector2(texture.width + 20, texture.height + 40);
+            minSize = new Vector2(texture.width + 20, texture.height + 60);
             maxSize = minSize;
         }
         
@@ -740,6 +704,5 @@ namespace Razluta.UnityIconGenerationFromModels
                 Debug.Log($"Preview saved to: {path}");
             }
         }
-    }
     }
 }
