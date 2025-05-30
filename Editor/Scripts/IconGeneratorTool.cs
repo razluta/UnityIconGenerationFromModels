@@ -12,6 +12,9 @@ namespace Razluta.UnityIconGenerationFromModels
     {
         private IconGeneratorSettings settings;
         private Scene renderScene;
+        private Scene originalScene;
+        private string originalScenePath;
+        private bool hadUnsavedChanges;
         private Camera renderCamera;
         private Light mainLight;
         private Light fillLight;
@@ -32,26 +35,141 @@ namespace Razluta.UnityIconGenerationFromModels
                 return;
             }
             
+            // Handle scene management
+            if (!HandleScenePreparation())
+            {
+                onComplete?.Invoke();
+                return;
+            }
+            
             SetupRenderScene();
             EnsureOutputDirectoryExists();
             
-            for (int i = 0; i < prefabs.Count; i++)
+            try
             {
-                var prefab = prefabs[i];
-                var progress = $"Processing {prefab.name} ({i + 1}/{prefabs.Count})";
-                onProgress?.Invoke(progress);
-                
-                GenerateIconForPrefab(prefab);
-                
-                EditorUtility.DisplayProgressBar("Generating Icons", progress, (float)i / prefabs.Count);
+                for (int i = 0; i < prefabs.Count; i++)
+                {
+                    var prefab = prefabs[i];
+                    var progress = $"Processing {prefab.name} ({i + 1}/{prefabs.Count})";
+                    onProgress?.Invoke(progress);
+                    
+                    GenerateIconForPrefab(prefab);
+                    
+                    EditorUtility.DisplayProgressBar("Generating Icons", progress, (float)i / prefabs.Count);
+                }
             }
-            
-            CleanupRenderScene();
-            AssetDatabase.Refresh();
-            EditorUtility.ClearProgressBar();
+            finally
+            {
+                // Always clean up and restore, even if something goes wrong
+                CleanupRenderScene();
+                RestoreOriginalScene();
+                AssetDatabase.Refresh();
+                EditorUtility.ClearProgressBar();
+            }
             
             Debug.Log($"Successfully generated {prefabs.Count} icons in '{settings.outputFolderPath}'");
             onComplete?.Invoke();
+        }
+        
+        private bool HandleScenePreparation()
+        {
+            // Get the current active scene
+            originalScene = SceneManager.GetActiveScene();
+            originalScenePath = originalScene.path;
+            hadUnsavedChanges = originalScene.isDirty;
+            
+            // If the scene has unsaved changes, ask the user to save
+            if (hadUnsavedChanges)
+            {
+                int option = EditorUtility.DisplayDialogComplex(
+                    "Unsaved Scene Changes",
+                    $"The current scene '{originalScene.name}' has unsaved changes.\n\n" +
+                    "The Icon Generation tool needs to create a temporary scene for rendering. " +
+                    "Would you like to save your current scene first?",
+                    "Save and Continue",
+                    "Continue without Saving", 
+                    "Cancel"
+                );
+                
+                switch (option)
+                {
+                    case 0: // Save and Continue
+                        if (string.IsNullOrEmpty(originalScenePath))
+                        {
+                            // Scene has never been saved, prompt for save location
+                            originalScenePath = EditorUtility.SaveFilePanel(
+                                "Save Scene",
+                                "Assets",
+                                originalScene.name,
+                                "unity"
+                            );
+                            
+                            if (string.IsNullOrEmpty(originalScenePath))
+                            {
+                                Debug.LogWarning("Icon generation cancelled - no save location specified.");
+                                return false;
+                            }
+                            
+                            // Convert absolute path to relative path
+                            if (originalScenePath.StartsWith(Application.dataPath))
+                            {
+                                originalScenePath = "Assets" + originalScenePath.Substring(Application.dataPath.Length);
+                            }
+                        }
+                        
+                        if (!EditorSceneManager.SaveScene(originalScene, originalScenePath))
+                        {
+                            Debug.LogError("Failed to save the current scene. Icon generation cancelled.");
+                            return false;
+                        }
+                        
+                        hadUnsavedChanges = false;
+                        Debug.Log($"Scene saved successfully: {originalScenePath}");
+                        break;
+                        
+                    case 1: // Continue without Saving
+                        Debug.LogWarning("Continuing without saving current scene. Your changes will be preserved.");
+                        break;
+                        
+                    case 2: // Cancel
+                        Debug.Log("Icon generation cancelled by user.");
+                        return false;
+                        
+                    default:
+                        return false;
+                }
+            }
+            
+            return true;
+        }
+        
+        private void RestoreOriginalScene()
+        {
+            // If we had an original scene with a valid path, reload it
+            if (!string.IsNullOrEmpty(originalScenePath))
+            {
+                try
+                {
+                    EditorSceneManager.OpenScene(originalScenePath, OpenSceneMode.Single);
+                    Debug.Log($"Restored original scene: {originalScenePath}");
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogError($"Failed to restore original scene '{originalScenePath}': {e.Message}");
+                }
+            }
+            else if (originalScene.IsValid())
+            {
+                // If the scene was never saved but is still valid, try to keep it active
+                // This handles the case where user chose "Continue without Saving"
+                Debug.Log("Keeping unsaved scene active.");
+            }
+            else
+            {
+                // Create a new empty scene as fallback
+                EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
+                Debug.Log("Created new default scene as fallback.");
+            }
         }
         
         private List<GameObject> FindPrefabsWithPrefix()
@@ -82,8 +200,9 @@ namespace Razluta.UnityIconGenerationFromModels
         
         private void SetupRenderScene()
         {
-            // Create temporary scene
+            // Create temporary scene for rendering
             renderScene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
+            SceneManager.SetActiveScene(renderScene);
             
             // Setup camera
             var cameraGO = new GameObject("RenderCamera");
@@ -110,6 +229,8 @@ namespace Razluta.UnityIconGenerationFromModels
             fillLight.color = settings.fillLightColor;
             fillLight.intensity = settings.fillLightIntensity;
             fillLight.transform.rotation = Quaternion.Euler(settings.fillLightDirection);
+            
+            Debug.Log("Render scene setup complete.");
         }
         
         private void GenerateIconForPrefab(GameObject prefab)
@@ -188,6 +309,7 @@ namespace Razluta.UnityIconGenerationFromModels
             if (renderScene.IsValid())
             {
                 EditorSceneManager.CloseScene(renderScene, true);
+                Debug.Log("Render scene cleaned up successfully.");
             }
         }
     }
