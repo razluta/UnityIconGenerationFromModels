@@ -1,7 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-namespace Razluta.UnityIconGenerationFromModels.Editor
+namespace Razluta.UnityIconGenerationFromModels
 {
     public enum LightingPresetType
     {
@@ -28,34 +28,6 @@ namespace Razluta.UnityIconGenerationFromModels.Editor
         public LightingPresetData()
         {
             pointLights = new List<PointLightSettings>();
-        }
-    }
-
-    [System.Serializable]
-    public class PointLightSettings
-    {
-        public Vector3 position;
-        public Color color;
-        public float intensity;
-        public float range;
-        public bool enabled;
-
-        public PointLightSettings()
-        {
-            position = Vector3.zero;
-            color = Color.white;
-            intensity = 1.0f;
-            range = 10.0f;
-            enabled = true;
-        }
-
-        public PointLightSettings(Vector3 pos, Color col, float inten, float ran, bool enable = true)
-        {
-            position = pos;
-            color = col;
-            intensity = inten;
-            range = ran;
-            enabled = enable;
         }
     }
 
@@ -213,112 +185,29 @@ namespace Razluta.UnityIconGenerationFromModels.Editor
             };
         }
 
-        /// <summary>
-        /// Check if current lighting settings match a specific preset
-        /// Updated for v1.2.0 structure
-        /// </summary>
         public static bool IsLightingMatchingPreset(IconGeneratorSettings settings, LightingPresetType presetType)
         {
             if (presetType == LightingPresetType.Custom) return true;
-            if (settings?.lightingConfiguration == null) return false;
 
             var preset = GetPreset(presetType);
             if (preset == null) return false;
 
-            var config = settings.lightingConfiguration;
-
             // Check if current lighting matches the preset (with small tolerance for floating point comparison)
             const float tolerance = 0.01f;
             
-            if (Vector3.Distance(config.mainLightDirection, preset.mainLightDirection) > tolerance ||
-                !Mathf.Approximately(config.mainLightIntensity, preset.mainLightIntensity) ||
-                Vector3.Distance(config.fillLightDirection, preset.fillLightDirection) > tolerance ||
-                !Mathf.Approximately(config.fillLightIntensity, preset.fillLightIntensity))
+            if (!Vector3.Distance(settings.mainLightDirection, preset.mainLightDirection).Equals(0f) ||
+                !Mathf.Approximately(settings.mainLightIntensity, preset.mainLightIntensity) ||
+                !Vector3.Distance(settings.fillLightDirection, preset.fillLightDirection).Equals(0f) ||
+                !Mathf.Approximately(settings.fillLightIntensity, preset.fillLightIntensity))
             {
                 return false;
             }
 
             // Check point lights count and basic properties
-            if (config.pointLights.Count != preset.pointLights.Count)
+            if (settings.pointLights.Count != preset.pointLights.Count)
                 return false;
 
             return true;
-        }
-
-        /// <summary>
-        /// Apply a lighting preset to the settings
-        /// New method for v1.2.0
-        /// </summary>
-        public static void ApplyPreset(IconGeneratorSettings settings, LightingPresetType presetType)
-        {
-            if (settings?.lightingConfiguration == null) return;
-            if (presetType == LightingPresetType.Custom) return;
-
-            var preset = GetPreset(presetType);
-            if (preset == null) return;
-
-            var config = settings.lightingConfiguration;
-
-            // Apply main light settings
-            config.mainLightDirection = preset.mainLightDirection;
-            config.mainLightColor = preset.mainLightColor;
-            config.mainLightIntensity = preset.mainLightIntensity;
-
-            // Apply fill light settings
-            config.fillLightDirection = preset.fillLightDirection;
-            config.fillLightColor = preset.fillLightColor;
-            config.fillLightIntensity = preset.fillLightIntensity;
-
-            // Apply point lights
-            config.pointLights.Clear();
-            foreach (var presetLight in preset.pointLights)
-            {
-                var pointLight = new PointLightConfiguration
-                {
-                    enabled = presetLight.enabled,
-                    position = presetLight.position,
-                    color = presetLight.color,
-                    intensity = presetLight.intensity,
-                    range = presetLight.range
-                };
-                config.pointLights.Add(pointLight);
-            }
-        }
-
-        /// <summary>
-        /// Convert LightingPresetType to LightingPreset enum (for compatibility)
-        /// </summary>
-        public static LightingPreset ToLightingPreset(LightingPresetType presetType)
-        {
-            return presetType switch
-            {
-                LightingPresetType.Custom => LightingPreset.Custom,
-                LightingPresetType.Studio => LightingPreset.Studio,
-                LightingPresetType.Dramatic => LightingPreset.Dramatic,
-                LightingPresetType.Soft => LightingPreset.Soft,
-                LightingPresetType.ProductShot => LightingPreset.ProductShot,
-                LightingPresetType.Cinematic => LightingPreset.Cinematic,
-                LightingPresetType.Technical => LightingPreset.Technical,
-                _ => LightingPreset.Custom
-            };
-        }
-
-        /// <summary>
-        /// Convert LightingPreset enum to LightingPresetType (for compatibility)
-        /// </summary>
-        public static LightingPresetType FromLightingPreset(LightingPreset preset)
-        {
-            return preset switch
-            {
-                LightingPreset.Custom => LightingPresetType.Custom,
-                LightingPreset.Studio => LightingPresetType.Studio,
-                LightingPreset.Dramatic => LightingPresetType.Dramatic,
-                LightingPreset.Soft => LightingPresetType.Soft,
-                LightingPreset.ProductShot => LightingPresetType.ProductShot,
-                LightingPreset.Cinematic => LightingPresetType.Cinematic,
-                LightingPreset.Technical => LightingPresetType.Technical,
-                _ => LightingPresetType.Custom
-            };
         }
     }
 }
