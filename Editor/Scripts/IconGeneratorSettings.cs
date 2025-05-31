@@ -5,14 +5,22 @@ using UnityEngine;
 namespace Razluta.UnityIconGenerationFromModels.Editor
 {
     /// <summary>
-    /// Minimal stub version of IconGeneratorSettings to resolve compilation dependencies
-    /// This will be replaced with the full version once all dependencies are resolved
+    /// Complete settings configuration for Unity Icon Generation Tool v1.2.0
+    /// Includes all new quality, multi-folder, and reporting features
     /// </summary>
     [Serializable]
     public class IconGeneratorSettings
     {
-        [Header("Basic Settings")]
+        [Header("Version Information")]
         public string version = "1.2.0";
+        
+        [Header("Quality Settings")]
+        public QualitySettings qualitySettings = new QualitySettings();
+        
+        [Header("Multi-Folder Input")]
+        public MultiFolderManager multiFolderManager = new MultiFolderManager();
+        
+        [Header("Output Configuration")]
         public string outputFolderPath = "";
         public ExportFormat exportFormat = ExportFormat.PNG;
         public int mainIconSize = 512;
@@ -22,7 +30,7 @@ namespace Razluta.UnityIconGenerationFromModels.Editor
         public Vector3 cameraPosition = new Vector3(1.5f, 1.5f, 1.5f);
         public Vector3 cameraRotation = new Vector3(15f, -30f, 0f);
         public float fieldOfView = 30f;
-        public Color backgroundColor = new Color(0f, 0f, 0f, 0f);
+        public Color backgroundColor = new Color(0f, 0f, 0f, 0f); // Transparent
         
         [Header("Object Transform")]
         public Vector3 objectScale = Vector3.one;
@@ -31,35 +39,80 @@ namespace Razluta.UnityIconGenerationFromModels.Editor
         public bool autoCenter = true;
         public bool autoFit = true;
         
-        [Header("Lighting")]
+        [Header("Lighting Configuration")]
         public LightingPreset lightingPreset = LightingPreset.Studio;
+        public LightingConfiguration lightingConfiguration = new LightingConfiguration();
         
-        // Placeholder properties that might be referenced by existing code
-        public QualitySettings qualitySettings;
-        public MultiFolderManager multiFolderManager;
-        public LightingConfiguration lightingConfiguration;
+        [Header("Advanced Options")]
         public bool enableReports = true;
         public bool showDetailedProgress = true;
         public bool pauseOnError = false;
         public bool exportConfigurationWithIcons = false;
+        
+        [Header("Performance")]
+        public bool useAsyncProcessing = true;
+        public int maxConcurrentOperations = 1;
         public bool enableMemoryOptimization = true;
         
         public IconGeneratorSettings()
         {
-            additionalSizes = new List<int> { 64, 128, 256, 1024 };
-            
-            // Initialize placeholder objects to prevent null reference errors
+            // Initialize with sensible defaults
+            version = "1.2.0";
             qualitySettings = new QualitySettings();
             multiFolderManager = new MultiFolderManager();
             lightingConfiguration = new LightingConfiguration();
+            
+            // Default additional sizes
+            additionalSizes = new List<int> { 64, 128, 256, 1024 };
         }
         
-        // Basic methods that might be called by existing code
+        /// <summary>
+        /// Validate current settings and return any issues
+        /// </summary>
         public List<string> ValidateSettings()
         {
-            return new List<string>();
+            var issues = new List<string>();
+            
+            // Validate output folder
+            if (string.IsNullOrEmpty(outputFolderPath))
+            {
+                issues.Add("Output folder path is required");
+            }
+            else if (!System.IO.Directory.Exists(outputFolderPath))
+            {
+                issues.Add($"Output folder does not exist: {outputFolderPath}");
+            }
+            
+            // Validate multi-folder configuration
+            var folderIssues = multiFolderManager.ValidateConfiguration();
+            issues.AddRange(folderIssues);
+            
+            // Validate icon sizes
+            if (mainIconSize <= 0)
+            {
+                issues.Add("Main icon size must be greater than 0");
+            }
+            
+            foreach (var size in additionalSizes)
+            {
+                if (size <= 0)
+                {
+                    issues.Add($"Invalid additional size: {size}");
+                }
+            }
+            
+            // Validate camera settings
+            if (fieldOfView <= 0 || fieldOfView >= 180)
+            {
+                issues.Add("Field of view must be between 0 and 180 degrees");
+            }
+            
+            return issues;
         }
         
+        /// <summary>
+        /// Get all icon sizes (main + additional)
+        /// </summary>
         public List<int> GetAllSizes()
         {
             var allSizes = new List<int> { mainIconSize };
@@ -67,33 +120,88 @@ namespace Razluta.UnityIconGenerationFromModels.Editor
             return allSizes;
         }
         
+        /// <summary>
+        /// Get total number of icons that will be generated
+        /// </summary>
         public int GetTotalIconCount()
         {
-            return GetAllSizes().Count;
+            var prefabCount = multiFolderManager.GetTotalPrefabCount();
+            var sizeCount = GetAllSizes().Count;
+            return prefabCount * sizeCount;
         }
         
+        /// <summary>
+        /// Get estimated processing time based on current settings
+        /// </summary>
         public float GetEstimatedProcessingTime()
         {
-            return 10.0f; // Placeholder
+            var prefabCount = multiFolderManager.GetTotalPrefabCount();
+            var sizeCount = GetAllSizes().Count;
+            var totalOperations = prefabCount * sizeCount;
+            
+            // Base time per operation (seconds)
+            float baseTimePerOperation = qualitySettings.renderQualityPreset switch
+            {
+                RenderQualityPreset.Draft => 0.5f,
+                RenderQualityPreset.Standard => 1.5f,
+                RenderQualityPreset.HighQuality => 4.0f,
+                _ => 1.5f
+            };
+            
+            // Adjust for anti-aliasing
+            float aaMultiplier = qualitySettings.antiAliasingLevel switch
+            {
+                AntiAliasingLevel.None => 0.8f,
+                AntiAliasingLevel.MSAA2x => 1.0f,
+                AntiAliasingLevel.MSAA4x => 1.2f,
+                AntiAliasingLevel.MSAA8x => 1.5f,
+                AntiAliasingLevel.MSAA16x => 2.0f,
+                _ => 1.0f
+            };
+            
+            // Adjust for render scale
+            float scaleMultiplier = Mathf.Pow(qualitySettings.renderScale, 1.5f);
+            
+            return totalOperations * baseTimePerOperation * aaMultiplier * scaleMultiplier;
         }
         
+        /// <summary>
+        /// Apply quality preset and update settings accordingly
+        /// </summary>
         public void ApplyQualityPreset(RenderQualityPreset preset)
         {
-            // Placeholder implementation
+            qualitySettings = QualitySettings.GetPresetConfiguration(preset);
         }
         
+        /// <summary>
+        /// Clone current settings
+        /// </summary>
         public IconGeneratorSettings Clone()
         {
-            return new IconGeneratorSettings();
+            var json = JsonUtility.ToJson(this);
+            return JsonUtility.FromJson<IconGeneratorSettings>(json);
         }
         
+        /// <summary>
+        /// Get summary of current configuration
+        /// </summary>
         public string GetConfigurationSummary()
         {
-            return "Configuration summary";
+            var summary = new System.Text.StringBuilder();
+            
+            summary.AppendLine($"Quality: {qualitySettings.renderQualityPreset} ({qualitySettings.antiAliasingLevel})");
+            summary.AppendLine($"Input: {multiFolderManager.GetSummary()}");
+            summary.AppendLine($"Output: {exportFormat}, {GetAllSizes().Count} sizes");
+            summary.AppendLine($"Lighting: {lightingPreset}");
+            summary.AppendLine($"Estimated time: {GetEstimatedProcessingTime():F1}s");
+            
+            return summary.ToString();
         }
     }
     
-    // Minimal enum definitions
+    /// <summary>
+    /// Export format options
+    /// </summary>
     [Serializable]
     public enum ExportFormat
     {
@@ -101,6 +209,9 @@ namespace Razluta.UnityIconGenerationFromModels.Editor
         TGA
     }
     
+    /// <summary>
+    /// Lighting preset enumeration (existing, expanded for v1.2.0)
+    /// </summary>
     [Serializable]
     public enum LightingPreset
     {
@@ -113,98 +224,9 @@ namespace Razluta.UnityIconGenerationFromModels.Editor
         Technical
     }
     
-    [Serializable]
-    public enum RenderQualityPreset
-    {
-        Draft = 0,
-        Standard = 1,
-        HighQuality = 2
-    }
-    
-    [Serializable]
-    public enum AntiAliasingLevel
-    {
-        None = 1,
-        MSAA2x = 2,
-        MSAA4x = 4,
-        MSAA8x = 8,
-        MSAA16x = 16
-    }
-    
-    // Minimal placeholder classes
-    [Serializable]
-    public class QualitySettings
-    {
-        public RenderQualityPreset renderQualityPreset = RenderQualityPreset.Standard;
-        public AntiAliasingLevel antiAliasingLevel = AntiAliasingLevel.MSAA8x;
-        public float renderScale = 1.0f;
-        
-        public static QualitySettings GetPresetConfiguration(RenderQualityPreset preset)
-        {
-            return new QualitySettings();
-        }
-        
-        public string GetPerformanceImpactDescription()
-        {
-            return "Standard quality";
-        }
-    }
-    
-    [Serializable]
-    public class MultiFolderManager
-    {
-        public List<InputFolderConfiguration> InputFolders = new List<InputFolderConfiguration>();
-        
-        public MultiFolderManager()
-        {
-            if (InputFolders.Count == 0)
-            {
-                InputFolders.Add(new InputFolderConfiguration());
-            }
-        }
-        
-        public void AddFolder() { }
-        public void RemoveFolder(int index) { }
-        public List<InputFolderConfiguration> GetValidFolders() { return new List<InputFolderConfiguration>(); }
-        public int GetTotalPrefabCount() { return 0; }
-        public string GetSummary() { return "No folders configured"; }
-        public List<string> ValidateConfiguration() { return new List<string>(); }
-    }
-    
-    [Serializable]
-    public class InputFolderConfiguration
-    {
-        public string folderPath = "";
-        public string prefabPrefix = "";
-        public bool isEnabled = true;
-        
-        public bool IsValid() { return false; }
-        public List<GameObject> GetPrefabs() { return new List<GameObject>(); }
-        public string GetDisplayName() { return "Empty Folder"; }
-    }
-    
-    [Serializable]
-    public class LightingConfiguration
-    {
-        public bool enableMainLight = true;
-        public Vector3 mainLightDirection = new Vector3(-30f, 50f, -30f);
-        public Color mainLightColor = Color.white;
-        public float mainLightIntensity = 1.2f;
-        
-        public bool enableFillLight = true;
-        public Vector3 fillLightDirection = new Vector3(30f, 10f, 30f);
-        public Color fillLightColor = new Color(0.8f, 0.9f, 1.0f);
-        public float fillLightIntensity = 0.4f;
-        
-        public List<PointLightConfiguration> pointLights = new List<PointLightConfiguration>();
-        public Color ambientColor = new Color(0.2f, 0.2f, 0.25f);
-        public float ambientIntensity = 0.3f;
-        
-        public void AddPointLight() { }
-        public void RemovePointLight(int index) { }
-        public int GetEnabledPointLightCount() { return 0; }
-    }
-    
+    /// <summary>
+    /// Point light configuration
+    /// </summary>
     [Serializable]
     public class PointLightConfiguration
     {
@@ -213,5 +235,81 @@ namespace Razluta.UnityIconGenerationFromModels.Editor
         public Color color = Color.white;
         public float intensity = 1.0f;
         public float range = 10.0f;
+        
+        public PointLightConfiguration()
+        {
+            enabled = true;
+            position = Vector3.zero;
+            color = Color.white;
+            intensity = 1.0f;
+            range = 10.0f;
+        }
+        
+        public PointLightConfiguration(Vector3 pos, Color col, float inten, float ran)
+        {
+            enabled = true;
+            position = pos;
+            color = col;
+            intensity = inten;
+            range = ran;
+        }
+    }
+    
+    /// <summary>
+    /// Complete lighting configuration
+    /// </summary>
+    [Serializable]
+    public class LightingConfiguration
+    {
+        [Header("Main Light")]
+        public bool enableMainLight = true;
+        public Vector3 mainLightDirection = new Vector3(-30f, 50f, -30f);
+        public Color mainLightColor = Color.white;
+        public float mainLightIntensity = 1.2f;
+        
+        [Header("Fill Light")]
+        public bool enableFillLight = true;
+        public Vector3 fillLightDirection = new Vector3(30f, 10f, 30f);
+        public Color fillLightColor = new Color(0.8f, 0.9f, 1.0f);
+        public float fillLightIntensity = 0.4f;
+        
+        [Header("Point Lights")]
+        public List<PointLightConfiguration> pointLights = new List<PointLightConfiguration>();
+        
+        [Header("Environment")]
+        public Color ambientColor = new Color(0.2f, 0.2f, 0.25f);
+        public float ambientIntensity = 0.3f;
+        
+        public LightingConfiguration()
+        {
+            // Initialize with default point lights
+            if (pointLights.Count == 0)
+            {
+                pointLights.Add(new PointLightConfiguration(
+                    new Vector3(2f, 2f, 2f), 
+                    Color.white, 
+                    0.8f, 
+                    5f
+                ));
+            }
+        }
+        
+        public void AddPointLight()
+        {
+            pointLights.Add(new PointLightConfiguration());
+        }
+        
+        public void RemovePointLight(int index)
+        {
+            if (index >= 0 && index < pointLights.Count)
+            {
+                pointLights.RemoveAt(index);
+            }
+        }
+        
+        public int GetEnabledPointLightCount()
+        {
+            return pointLights.Count(light => light.enabled);
+        }
     }
 }
