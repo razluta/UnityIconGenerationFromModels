@@ -31,6 +31,7 @@ namespace Razluta.UnityIconGenerationFromModels.Editor
         [Header("Lighting")]
         public LightingPreset lightingPreset = LightingPreset.Studio;
         
+        // References to classes defined in other files
         public QualitySettings qualitySettings;
         public MultiFolderManager multiFolderManager;
         public LightingConfiguration lightingConfiguration;
@@ -50,7 +51,20 @@ namespace Razluta.UnityIconGenerationFromModels.Editor
         
         public List<string> ValidateSettings()
         {
-            return new List<string>();
+            var issues = new List<string>();
+            
+            if (string.IsNullOrEmpty(outputFolderPath))
+            {
+                issues.Add("Output folder path is required");
+            }
+            
+            if (multiFolderManager != null)
+            {
+                var folderIssues = multiFolderManager.ValidateConfiguration();
+                issues.AddRange(folderIssues);
+            }
+            
+            return issues;
         }
         
         public List<int> GetAllSizes()
@@ -62,30 +76,57 @@ namespace Razluta.UnityIconGenerationFromModels.Editor
         
         public int GetTotalIconCount()
         {
-            return GetAllSizes().Count;
+            var prefabCount = multiFolderManager?.GetTotalPrefabCount() ?? 0;
+            var sizeCount = GetAllSizes().Count;
+            return prefabCount * sizeCount;
         }
         
         public float GetEstimatedProcessingTime()
         {
-            return 10.0f;
+            var prefabCount = multiFolderManager?.GetTotalPrefabCount() ?? 0;
+            var sizeCount = GetAllSizes().Count;
+            var totalOperations = prefabCount * sizeCount;
+            
+            float baseTimePerOperation = qualitySettings?.renderQualityPreset switch
+            {
+                RenderQualityPreset.Draft => 0.5f,
+                RenderQualityPreset.Standard => 1.5f,
+                RenderQualityPreset.HighQuality => 4.0f,
+                _ => 1.5f
+            } ?? 1.5f;
+            
+            return totalOperations * baseTimePerOperation;
         }
         
         public void ApplyQualityPreset(RenderQualityPreset preset)
         {
-            // Placeholder
+            if (qualitySettings != null)
+            {
+                qualitySettings = QualitySettings.GetPresetConfiguration(preset);
+            }
         }
         
         public IconGeneratorSettings Clone()
         {
-            return new IconGeneratorSettings();
+            var json = JsonUtility.ToJson(this);
+            return JsonUtility.FromJson<IconGeneratorSettings>(json);
         }
         
         public string GetConfigurationSummary()
         {
-            return "Configuration summary";
+            var summary = new System.Text.StringBuilder();
+            
+            summary.AppendLine($"Quality: {qualitySettings?.renderQualityPreset} ({qualitySettings?.antiAliasingLevel})");
+            summary.AppendLine($"Input: {multiFolderManager?.GetSummary()}");
+            summary.AppendLine($"Output: {exportFormat}, {GetAllSizes().Count} sizes");
+            summary.AppendLine($"Lighting: {lightingPreset}");
+            summary.AppendLine($"Estimated time: {GetEstimatedProcessingTime():F1}s");
+            
+            return summary.ToString();
         }
     }
     
+    // Only include enums and classes that aren't defined elsewhere
     [Serializable]
     public enum ExportFormat
     {
@@ -105,152 +146,7 @@ namespace Razluta.UnityIconGenerationFromModels.Editor
         Technical
     }
     
-    [Serializable]
-    public enum RenderQualityPreset
-    {
-        Draft = 0,
-        Standard = 1,
-        HighQuality = 2
-    }
-    
-    [Serializable]
-    public enum AntiAliasingLevel
-    {
-        None = 1,
-        MSAA2x = 2,
-        MSAA4x = 4,
-        MSAA8x = 8,
-        MSAA16x = 16
-    }
-    
-    [Serializable]
-    public class QualitySettings
-    {
-        public RenderQualityPreset renderQualityPreset = RenderQualityPreset.Standard;
-        public AntiAliasingLevel antiAliasingLevel = AntiAliasingLevel.MSAA8x;
-        public float renderScale = 1.0f;
-        
-        public static QualitySettings GetPresetConfiguration(RenderQualityPreset preset)
-        {
-            return new QualitySettings();
-        }
-        
-        public string GetPerformanceImpactDescription()
-        {
-            return "Standard quality";
-        }
-    }
-    
-    [Serializable]
-    public class MultiFolderManager
-    {
-        public List<InputFolderConfiguration> InputFolders = new List<InputFolderConfiguration>();
-        
-        public MultiFolderManager()
-        {
-            if (InputFolders.Count == 0)
-            {
-                InputFolders.Add(new InputFolderConfiguration());
-            }
-        }
-        
-        public void AddFolder() 
-        { 
-            InputFolders.Add(new InputFolderConfiguration());
-        }
-        
-        public void RemoveFolder(int index) 
-        { 
-            if (index >= 0 && index < InputFolders.Count && InputFolders.Count > 1)
-            {
-                InputFolders.RemoveAt(index);
-            }
-        }
-        
-        public List<InputFolderConfiguration> GetValidFolders() 
-        { 
-            return InputFolders.Where(f => f.IsValid()).ToList();
-        }
-        
-        public int GetTotalPrefabCount() 
-        { 
-            return GetValidFolders().Sum(f => f.GetPrefabs().Count);
-        }
-        
-        public string GetSummary() 
-        { 
-            var count = GetTotalPrefabCount();
-            return count > 0 ? $"1 folder with {count} prefabs" : "No folders configured";
-        }
-        
-        public List<string> ValidateConfiguration() 
-        { 
-            return new List<string>();
-        }
-    }
-    
-    [Serializable]
-    public class InputFolderConfiguration
-    {
-        public string folderPath = "";
-        public string prefabPrefix = "";
-        public bool isEnabled = true;
-        public bool useCustomSettings = false;
-        public Vector3 customObjectScale = Vector3.one;
-        public Vector3 customObjectPosition = Vector3.zero;
-        public Vector3 customObjectRotation = Vector3.zero;
-        
-        public bool IsValid() 
-        { 
-            return !string.IsNullOrEmpty(folderPath) && 
-                   System.IO.Directory.Exists(folderPath) && 
-                   !string.IsNullOrEmpty(prefabPrefix) &&
-                   isEnabled;
-        }
-        
-        public List<GameObject> GetPrefabs() 
-        { 
-            var prefabs = new List<GameObject>();
-            
-            if (!IsValid()) return prefabs;
-            
-            try
-            {
-                var prefabFiles = System.IO.Directory.GetFiles(folderPath, "*.prefab", System.IO.SearchOption.TopDirectoryOnly)
-                    .Where(file => System.IO.Path.GetFileNameWithoutExtension(file).StartsWith(prefabPrefix))
-                    .ToArray();
-                    
-                foreach (var prefabFile in prefabFiles)
-                {
-                    var relativePath = prefabFile.Replace(Application.dataPath, "Assets");
-                    var prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(relativePath);
-                    
-                    if (prefab != null)
-                    {
-                        prefabs.Add(prefab);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"Error loading prefabs from {folderPath}: {ex.Message}");
-            }
-            
-            return prefabs;
-        }
-        
-        public string GetDisplayName() 
-        { 
-            if (string.IsNullOrEmpty(folderPath))
-                return "Empty Folder";
-                
-            var folderName = System.IO.Path.GetFileName(folderPath);
-            var prefabCount = GetPrefabs().Count;
-            
-            return $"{folderName} ({prefabPrefix}*) - {prefabCount} prefabs";
-        }
-    }
-    
+    // Only include these if they're not defined in other files you've created
     [Serializable]
     public class LightingConfiguration
     {
