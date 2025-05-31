@@ -1,9 +1,22 @@
-using UnityEditor;
+var message = $"Current Settings:\n\n" +
+                         $"Input Folder: {settings.inputFolderPath}\n" +
+                         $"Prefab Prefix: {settings.prefabNamePrefix}\n" +
+                         $"Output Folder: {settings.outputFolderPath}\n" +
+                         $"Icon Size: {settings.iconSize}x{settings.iconSize}\n" +
+                         $"Additional Sizes: {settings.additionalSizes.Count}\n" +
+                         $"Export Format: {settings.exportFormat}\n" +
+                         $"Camera Position: {settings.cameraPosition}\n" +
+                         $"Camera FOV: {settings.cameraFOV}°\n" +
+                         $"Auto Center: {settings.autoCenter}\n" +
+                         $"Auto Fit: {settings.autoFit}\n" +
+                         $"Point Lights: {settings.pointLights.Count}";            RefreshField<IntegerField, int>("icon-width", settings.iconWidth);
+            RefreshField<IntegerField, int>("icon-height", settings.iconHeight);using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 using UnityEditor.UIElements;
 using System.IO;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Razluta.UnityIconGenerationFromModels
 {
@@ -23,6 +36,10 @@ namespace Razluta.UnityIconGenerationFromModels
         private Button saveConfigButton;
         private Button loadConfigButton;
         private DropdownField lightingPresetDropdown;
+        private DropdownField iconSizeDropdown;
+        private DropdownField exportFormatDropdown;
+        private VisualElement additionalSizesContainer;
+        private Button addSizeButton;
         
         [MenuItem("Tools/Razluta/Unity Icon Generation From Models")]
         public static void ShowWindow()
@@ -103,13 +120,29 @@ namespace Razluta.UnityIconGenerationFromModels
             outputFolder.name = "output-folder";
             outputFoldout.Add(outputFolder);
             
-            var iconWidth = new IntegerField("Icon Width");
-            iconWidth.name = "icon-width";
-            outputFoldout.Add(iconWidth);
+            iconSizeDropdown = new DropdownField("Icon Size");
+            iconSizeDropdown.name = "icon-size-dropdown";
+            outputFoldout.Add(iconSizeDropdown);
             
-            var iconHeight = new IntegerField("Icon Height");
-            iconHeight.name = "icon-height";
-            outputFoldout.Add(iconHeight);
+            exportFormatDropdown = new DropdownField("Export Format");
+            exportFormatDropdown.name = "export-format-dropdown";
+            outputFoldout.Add(exportFormatDropdown);
+            
+            var additionalSizesLabel = new Label("Additional Sizes");
+            additionalSizesLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            additionalSizesLabel.style.marginTop = 10;
+            outputFoldout.Add(additionalSizesLabel);
+            
+            additionalSizesContainer = new VisualElement();
+            additionalSizesContainer.name = "additional-sizes-container";
+            additionalSizesContainer.style.marginTop = 5;
+            outputFoldout.Add(additionalSizesContainer);
+            
+            addSizeButton = new Button(() => AddSizeVariant()) { text = "Add Size Variant" };
+            addSizeButton.name = "add-size-button";
+            addSizeButton.style.height = 25;
+            addSizeButton.style.marginTop = 5;
+            outputFoldout.Add(addSizeButton);
             
             // Camera Settings
             var cameraFoldout = new Foldout { text = "Camera Settings", value = false };
@@ -292,8 +325,10 @@ namespace Razluta.UnityIconGenerationFromModels
             statusLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
             container.Add(statusLabel);
             
-            BindUIElementsFallback();
-            SetupLightingPresetDropdown();
+            RefreshPointLightsUI();
+            UpdatePrefabCount();
+            UpdateLightingPresetDropdown();
+            RefreshAdditionalSizesUI();
         }
         
         private void BindUIElements()
@@ -311,9 +346,15 @@ namespace Razluta.UnityIconGenerationFromModels
             saveConfigButton = root.Q<Button>("save-config-button");
             loadConfigButton = root.Q<Button>("load-config-button");
             lightingPresetDropdown = root.Q<DropdownField>("lighting-preset-dropdown");
+            iconSizeDropdown = root.Q<DropdownField>("icon-size-dropdown");
+            exportFormatDropdown = root.Q<DropdownField>("export-format-dropdown");
+            additionalSizesContainer = root.Q<VisualElement>("additional-sizes-container");
+            addSizeButton = root.Q<Button>("add-size-button");
             
-            // Setup lighting preset dropdown
+            // Setup dropdowns
             SetupLightingPresetDropdown();
+            SetupIconSizeDropdown();
+            SetupExportFormatDropdown();
             
             // Bind input settings
             var inputFolder = root.Q<ObjectField>("input-folder");
@@ -327,6 +368,9 @@ namespace Razluta.UnityIconGenerationFromModels
                     settings.SaveToPrefs();
                 });
             }
+            
+            BindField<IntegerField, int>("icon-width", settings.iconWidth, val => settings.iconWidth = val);
+            BindField<IntegerField, int>("icon-height", settings.iconHeight, val => settings.iconHeight = val);
             
             var prefabPrefix = root.Q<TextField>("prefab-prefix");
             if (prefabPrefix != null)
@@ -419,6 +463,8 @@ namespace Razluta.UnityIconGenerationFromModels
                 saveConfigButton.clicked += SaveConfiguration;
             if (loadConfigButton != null)
                 loadConfigButton.clicked += LoadConfiguration;
+            if (addSizeButton != null)
+                addSizeButton.clicked += AddSizeVariant;
         }
         
         private void BindUIElementsFallback()
@@ -516,6 +562,115 @@ namespace Razluta.UnityIconGenerationFromModels
                     RefreshPointLightsUI();
                 }
             });
+        }
+        
+        private void SetupIconSizeDropdown()
+        {
+            if (iconSizeDropdown == null) return;
+            
+            var availableSizes = IconGeneratorSettings.GetAvailableSizes();
+            var sizeNames = new List<string>();
+            
+            foreach (var size in availableSizes)
+            {
+                sizeNames.Add(IconGeneratorSettings.GetSizeDisplayName(size));
+            }
+            
+            iconSizeDropdown.choices = sizeNames;
+            iconSizeDropdown.value = IconGeneratorSettings.GetSizeDisplayName(settings.iconSize);
+            
+            iconSizeDropdown.RegisterValueChangedCallback(evt => {
+                var selectedIndex = iconSizeDropdown.choices.IndexOf(evt.newValue);
+                if (selectedIndex >= 0 && selectedIndex < availableSizes.Length)
+                {
+                    settings.iconSize = availableSizes[selectedIndex];
+                    settings.SaveToPrefs();
+                }
+            });
+        }
+        
+        private void SetupExportFormatDropdown()
+        {
+            if (exportFormatDropdown == null) return;
+            
+            var formatNames = new List<string> { "PNG", "TGA" };
+            exportFormatDropdown.choices = formatNames;
+            exportFormatDropdown.value = settings.exportFormat == ExportFormat.PNG ? "PNG" : "TGA";
+            
+            exportFormatDropdown.RegisterValueChangedCallback(evt => {
+                settings.exportFormat = evt.newValue == "PNG" ? ExportFormat.PNG : ExportFormat.TGA;
+                settings.SaveToPrefs();
+            });
+        }
+        
+        private void AddSizeVariant()
+        {
+            // Show dropdown to select additional size
+            var availableSizes = IconGeneratorSettings.GetAvailableSizes();
+            var sizeNames = new List<string>();
+            
+            foreach (var size in availableSizes)
+            {
+                if (size != settings.iconSize && !settings.additionalSizes.Contains(size))
+                {
+                    sizeNames.Add(IconGeneratorSettings.GetSizeDisplayName(size));
+                }
+            }
+            
+            if (sizeNames.Count == 0)
+            {
+                EditorUtility.DisplayDialog("No More Sizes", "All available sizes are already selected.", "OK");
+                return;
+            }
+            
+            // Simple approach: add the first available size
+            var firstAvailableSize = availableSizes.FirstOrDefault(size => 
+                size != settings.iconSize && !settings.additionalSizes.Contains(size));
+            
+            if (firstAvailableSize > 0)
+            {
+                settings.additionalSizes.Add(firstAvailableSize);
+                settings.SaveToPrefs();
+                RefreshAdditionalSizesUI();
+            }
+        }
+        
+        private void RemoveSizeVariant(int size)
+        {
+            settings.additionalSizes.Remove(size);
+            settings.SaveToPrefs();
+            RefreshAdditionalSizesUI();
+        }
+        
+        private void RefreshAdditionalSizesUI()
+        {
+            if (additionalSizesContainer == null) return;
+            
+            additionalSizesContainer.Clear();
+            
+            foreach (var size in settings.additionalSizes)
+            {
+                CreateAdditionalSizeUI(size);
+            }
+        }
+        
+        private void CreateAdditionalSizeUI(int size)
+        {
+            var container = new VisualElement();
+            container.style.flexDirection = FlexDirection.Row;
+            container.style.alignItems = Align.Center;
+            container.style.marginBottom = 2;
+            
+            var label = new Label(IconGeneratorSettings.GetSizeDisplayName(size));
+            label.style.flexGrow = 1;
+            container.Add(label);
+            
+            var removeButton = new Button(() => RemoveSizeVariant(size)) { text = "Remove" };
+            removeButton.style.height = 20;
+            removeButton.style.width = 60;
+            container.Add(removeButton);
+            
+            additionalSizesContainer.Add(container);
         }
         
         private void UpdateLightingPresetDropdown()

@@ -21,8 +21,9 @@ namespace Razluta.UnityIconGenerationFromModels
         
         [Header("Output Settings")]
         public string outputFolderPath = "Assets/GeneratedIcons";
-        public int iconWidth = 256;
-        public int iconHeight = 256;
+        public int iconSize = 512;
+        public List<int> additionalSizes = new List<int>();
+        public ExportFormat exportFormat = ExportFormat.PNG;
         
         [Header("Camera Settings")]
         public Vector3 cameraPosition = new Vector3(0, 0, -3);
@@ -59,8 +60,9 @@ namespace Razluta.UnityIconGenerationFromModels
             preset.inputFolderPath = settings.inputFolderPath;
             preset.prefabNamePrefix = settings.prefabNamePrefix;
             preset.outputFolderPath = settings.outputFolderPath;
-            preset.iconWidth = settings.iconWidth;
-            preset.iconHeight = settings.iconHeight;
+            preset.iconSize = settings.iconSize;
+            preset.additionalSizes = new List<int>(settings.additionalSizes);
+            preset.exportFormat = settings.exportFormat;
             
             preset.cameraPosition = settings.cameraPosition;
             preset.cameraRotation = settings.cameraRotation;
@@ -103,8 +105,9 @@ namespace Razluta.UnityIconGenerationFromModels
             // settings.outputFolderPath = outputFolderPath;
             
             settings.prefabNamePrefix = prefabNamePrefix;
-            settings.iconWidth = iconWidth;
-            settings.iconHeight = iconHeight;
+            settings.iconSize = iconSize;
+            settings.additionalSizes = new List<int>(additionalSizes);
+            settings.exportFormat = exportFormat;
             
             settings.cameraPosition = cameraPosition;
             settings.cameraRotation = cameraRotation;
@@ -230,7 +233,9 @@ namespace Razluta.UnityIconGenerationFromModels
                          $"Version: {preset.version}\n\n" +
                          $"Lighting Preset: {LightingPresets.GetPresetDisplayName(preset.lightingPresetType)}\n" +
                          $"Point Lights: {preset.pointLights.Count}\n" +
-                         $"Icon Size: {preset.iconWidth}x{preset.iconHeight}\n" +
+                         $"Icon Size: {preset.iconSize}x{preset.iconSize}\n" +
+                         $"Additional Sizes: {preset.additionalSizes.Count}\n" +
+                         $"Export Format: {preset.exportFormat}\n" +
                          $"Auto Center: {preset.autoCenter}\n" +
                          $"Auto Fit: {preset.autoFit}";
 

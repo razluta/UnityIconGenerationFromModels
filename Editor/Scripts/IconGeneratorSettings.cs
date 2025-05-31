@@ -4,6 +4,12 @@ using System.Collections.Generic;
 
 namespace Razluta.UnityIconGenerationFromModels
 {
+    public enum ExportFormat
+    {
+        PNG = 0,
+        TGA = 1
+    }
+
     [System.Serializable]
     public class PointLightSettings
     {
@@ -36,8 +42,9 @@ namespace Razluta.UnityIconGenerationFromModels
         
         [Header("Output Settings")]
         public string outputFolderPath = "Assets/GeneratedIcons";
-        public int iconWidth = 256;
-        public int iconHeight = 256;
+        public int iconSize = 512;
+        public List<int> additionalSizes = new List<int>();
+        public ExportFormat exportFormat = ExportFormat.PNG;
         
         [Header("Camera Settings")]
         public Vector3 cameraPosition = new Vector3(0, 0, -3);
@@ -69,8 +76,15 @@ namespace Razluta.UnityIconGenerationFromModels
             EditorPrefs.SetString("UnityIconGen_InputFolder", inputFolderPath);
             EditorPrefs.SetString("UnityIconGen_PrefabPrefix", prefabNamePrefix);
             EditorPrefs.SetString("UnityIconGen_OutputFolder", outputFolderPath);
-            EditorPrefs.SetInt("UnityIconGen_IconWidth", iconWidth);
-            EditorPrefs.SetInt("UnityIconGen_IconHeight", iconHeight);
+            EditorPrefs.SetInt("UnityIconGen_IconSize", iconSize);
+            EditorPrefs.SetInt("UnityIconGen_ExportFormat", (int)exportFormat);
+            
+            // Save additional sizes
+            EditorPrefs.SetInt("UnityIconGen_AdditionalSizeCount", additionalSizes.Count);
+            for (int i = 0; i < additionalSizes.Count; i++)
+            {
+                EditorPrefs.SetInt($"UnityIconGen_AdditionalSize_{i}", additionalSizes[i]);
+            }
             
             EditorPrefs.SetString("UnityIconGen_CameraPos", JsonUtility.ToJson(cameraPosition));
             EditorPrefs.SetString("UnityIconGen_CameraRot", JsonUtility.ToJson(cameraRotation));
@@ -109,8 +123,17 @@ namespace Razluta.UnityIconGenerationFromModels
             inputFolderPath = EditorPrefs.GetString("UnityIconGen_InputFolder", inputFolderPath);
             prefabNamePrefix = EditorPrefs.GetString("UnityIconGen_PrefabPrefix", prefabNamePrefix);
             outputFolderPath = EditorPrefs.GetString("UnityIconGen_OutputFolder", outputFolderPath);
-            iconWidth = EditorPrefs.GetInt("UnityIconGen_IconWidth", iconWidth);
-            iconHeight = EditorPrefs.GetInt("UnityIconGen_IconHeight", iconHeight);
+            iconSize = EditorPrefs.GetInt("UnityIconGen_IconSize", iconSize);
+            exportFormat = (ExportFormat)EditorPrefs.GetInt("UnityIconGen_ExportFormat", (int)ExportFormat.PNG);
+            
+            // Load additional sizes
+            int additionalSizeCount = EditorPrefs.GetInt("UnityIconGen_AdditionalSizeCount", 0);
+            additionalSizes.Clear();
+            for (int i = 0; i < additionalSizeCount; i++)
+            {
+                int size = EditorPrefs.GetInt($"UnityIconGen_AdditionalSize_{i}", 256);
+                additionalSizes.Add(size);
+            }
             
             if (EditorPrefs.HasKey("UnityIconGen_CameraPos"))
                 JsonUtility.FromJsonOverwrite(EditorPrefs.GetString("UnityIconGen_CameraPos"), cameraPosition);
@@ -216,6 +239,33 @@ namespace Razluta.UnityIconGenerationFromModels
                     SaveToPrefs();
                 }
             }
+        }
+        
+        public static int[] GetAvailableSizes()
+        {
+            var sizes = new List<int>();
+            for (int i = 4; i <= 12; i++) // 2^4 = 16 to 2^12 = 4096
+            {
+                sizes.Add((int)Mathf.Pow(2, i));
+            }
+            return sizes.ToArray();
+        }
+        
+        public static string GetSizeDisplayName(int size)
+        {
+            return $"{size}x{size}";
+        }
+        
+        public List<int> GetAllSizes()
+        {
+            var allSizes = new List<int> { iconSize };
+            allSizes.AddRange(additionalSizes);
+            return allSizes;
+        }
+        
+        public string GetFileExtension()
+        {
+            return exportFormat == ExportFormat.PNG ? "png" : "tga";
         }
     }
 }

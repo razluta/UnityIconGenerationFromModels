@@ -89,7 +89,7 @@ namespace Razluta.UnityIconGenerationFromModels
             }
             
             // Create render texture
-            var renderTexture = new RenderTexture(settings.iconWidth, settings.iconHeight, 24, RenderTextureFormat.ARGB32);
+            var renderTexture = new RenderTexture(settings.iconSize, settings.iconSize, 24, RenderTextureFormat.ARGB32);
             renderTexture.antiAliasing = 8;
             
             // Render to texture
@@ -98,8 +98,8 @@ namespace Razluta.UnityIconGenerationFromModels
             
             // Convert to Texture2D
             RenderTexture.active = renderTexture;
-            var texture2D = new Texture2D(settings.iconWidth, settings.iconHeight, TextureFormat.RGBA32, false);
-            texture2D.ReadPixels(new Rect(0, 0, settings.iconWidth, settings.iconHeight), 0, 0);
+            var texture2D = new Texture2D(settings.iconSize, settings.iconSize, TextureFormat.RGBA32, false);
+            texture2D.ReadPixels(new Rect(0, 0, settings.iconSize, settings.iconSize), 0, 0);
             texture2D.Apply();
             
             // Cleanup

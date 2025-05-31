@@ -16,8 +16,14 @@
             <ui:Foldout text="Output Settings" value="true" name="output-foldout">
                 <ui:VisualElement style="margin-left: 15px; margin-top: 5px;">
                     <uie:ObjectField label="Output Folder" name="output-folder" type="UnityEditor.DefaultAsset" />
-                    <ui:IntegerField label="Icon Width" name="icon-width" />
-                    <ui:IntegerField label="Icon Height" name="icon-height" />
+                    <ui:DropdownField label="Icon Size" name="icon-size-dropdown" />
+                    <ui:DropdownField label="Export Format" name="export-format-dropdown" />
+                    
+                    <ui:Label text="Additional Sizes" style="-unity-font-style: bold; margin-top: 10px;" />
+                    <ui:VisualElement name="additional-sizes-container" style="margin-top: 5px;">
+                        <!-- Additional sizes will be dynamically added here -->
+                    </ui:VisualElement>
+                    <ui:Button text="Add Size Variant" name="add-size-button" style="height: 25px; margin-top: 5px;" />
                 </ui:VisualElement>
             </ui:Foldout>
             

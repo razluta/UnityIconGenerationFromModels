@@ -266,8 +266,24 @@ namespace Razluta.UnityIconGenerationFromModels
                 AdjustObjectForRendering();
             }
             
+            // Generate icons for all sizes
+            var allSizes = settings.GetAllSizes();
+            var iconName = prefab.name.Replace(settings.prefabNamePrefix, "");
+            var fileExtension = settings.GetFileExtension();
+            
+            foreach (var size in allSizes)
+            {
+                GenerateIconAtSize(iconName, size, fileExtension);
+            }
+            
+            // Cleanup
+            Object.DestroyImmediate(currentObject);
+        }
+        
+        private void GenerateIconAtSize(string iconName, int size, string fileExtension)
+        {
             // Create render texture
-            var renderTexture = new RenderTexture(settings.iconWidth, settings.iconHeight, 24, RenderTextureFormat.ARGB32);
+            var renderTexture = new RenderTexture(size, size, 24, RenderTextureFormat.ARGB32);
             renderTexture.antiAliasing = 8;
             
             // Render to texture
@@ -276,22 +292,37 @@ namespace Razluta.UnityIconGenerationFromModels
             
             // Convert to Texture2D
             RenderTexture.active = renderTexture;
-            var texture2D = new Texture2D(settings.iconWidth, settings.iconHeight, TextureFormat.RGBA32, false);
-            texture2D.ReadPixels(new Rect(0, 0, settings.iconWidth, settings.iconHeight), 0, 0);
+            var texture2D = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            texture2D.ReadPixels(new Rect(0, 0, size, size), 0, 0);
             texture2D.Apply();
             
-            // Save as PNG
-            var pngData = texture2D.EncodeToPNG();
-            var iconName = prefab.name.Replace(settings.prefabNamePrefix, "");
-            var savePath = Path.Combine(settings.outputFolderPath, $"{iconName}_Icon.png");
-            File.WriteAllBytes(savePath, pngData);
+            // Save file
+            byte[] fileData;
+            string fileName;
+            
+            if (settings.exportFormat == ExportFormat.PNG)
+            {
+                fileData = texture2D.EncodeToPNG();
+                fileName = size == settings.iconSize ? 
+                    $"{iconName}_Icon.{fileExtension}" : 
+                    $"{iconName}_Icon_{size}x{size}.{fileExtension}";
+            }
+            else // TGA
+            {
+                fileData = texture2D.EncodeToTGA();
+                fileName = size == settings.iconSize ? 
+                    $"{iconName}_Icon.{fileExtension}" : 
+                    $"{iconName}_Icon_{size}x{size}.{fileExtension}";
+            }
+            
+            var savePath = Path.Combine(settings.outputFolderPath, fileName);
+            File.WriteAllBytes(savePath, fileData);
             
             // Cleanup
             RenderTexture.active = null;
             renderCamera.targetTexture = null;
             Object.DestroyImmediate(renderTexture);
             Object.DestroyImmediate(texture2D);
-            Object.DestroyImmediate(currentObject);
         }
         
         private void AdjustObjectForRendering()
