@@ -5,6 +5,7 @@ using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
+using System;
 
 namespace Razluta.UnityIconGenerationFromModels
 {
@@ -23,6 +24,8 @@ namespace Razluta.UnityIconGenerationFromModels
         private Button collectConfigButton;
         private Button saveConfigButton;
         private Button loadConfigButton;
+        private Button viewLastReportButton;
+        private Button openReportsButton;
         private DropdownField lightingPresetDropdown;
         private DropdownField iconSizeDropdown;
         private DropdownField exportFormatDropdown;
@@ -30,6 +33,7 @@ namespace Razluta.UnityIconGenerationFromModels
         private Button addSizeButton;
         private Button titleButton;
         private Button versionButton;
+        private UnityIconGenerationTool currentTool;
         
         [MenuItem("Tools/Razluta/Unity Icon Generation From Models")]
         public static void ShowWindow()
@@ -61,6 +65,7 @@ namespace Razluta.UnityIconGenerationFromModels
             SetupIconSizeDropdown();
             SetupExportFormatDropdown();
             RefreshAdditionalSizesUI();
+            UpdateReportButtonsState();
         }
         
         private void CreateGUIFallback()
@@ -307,6 +312,32 @@ namespace Razluta.UnityIconGenerationFromModels
             collectConfigButton.style.marginBottom = 10;
             container.Add(collectConfigButton);
             
+            // Add Generation Reports section
+            var reportsLabel = new Label("Generation Reports");
+            reportsLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            reportsLabel.style.marginTop = 10;
+            reportsLabel.style.marginBottom = 5;
+            container.Add(reportsLabel);
+            
+            var reportButtonRow = new VisualElement();
+            reportButtonRow.style.flexDirection = FlexDirection.Row;
+            reportButtonRow.style.marginBottom = 10;
+            container.Add(reportButtonRow);
+            
+            viewLastReportButton = new Button(() => ViewLastReport()) { text = "View Last Report" };
+            viewLastReportButton.name = "view-last-report-button";
+            viewLastReportButton.style.height = 30;
+            viewLastReportButton.style.flexGrow = 1;
+            viewLastReportButton.style.marginRight = 2;
+            reportButtonRow.Add(viewLastReportButton);
+            
+            openReportsButton = new Button(() => OpenReportsFolder()) { text = "Open Reports Folder" };
+            openReportsButton.name = "open-reports-button";
+            openReportsButton.style.height = 30;
+            openReportsButton.style.flexGrow = 1;
+            openReportsButton.style.marginLeft = 2;
+            reportButtonRow.Add(openReportsButton);
+            
             previewButton = new Button(() => PreviewSettings()) { text = "Preview Settings" };
             previewButton.name = "preview-button";
             previewButton.style.height = 30;
@@ -342,6 +373,8 @@ namespace Razluta.UnityIconGenerationFromModels
             collectConfigButton = root.Q<Button>("collect-config-button");
             saveConfigButton = root.Q<Button>("save-config-button");
             loadConfigButton = root.Q<Button>("load-config-button");
+            viewLastReportButton = root.Q<Button>("view-last-report-button");
+            openReportsButton = root.Q<Button>("open-reports-button");
             lightingPresetDropdown = root.Q<DropdownField>("lighting-preset-dropdown");
             iconSizeDropdown = root.Q<DropdownField>("icon-size-dropdown");
             exportFormatDropdown = root.Q<DropdownField>("export-format-dropdown");
@@ -358,6 +391,7 @@ namespace Razluta.UnityIconGenerationFromModels
                     if (evt.newValue != null)
                         settings.inputFolderPath = AssetDatabase.GetAssetPath(evt.newValue);
                     UpdatePrefabCount();
+                    UpdateReportButtonsState();
                     settings.SaveToPrefs();
                 });
             }
@@ -380,6 +414,7 @@ namespace Razluta.UnityIconGenerationFromModels
                 outputFolder.RegisterValueChangedCallback(evt => {
                     if (evt.newValue != null)
                         settings.outputFolderPath = AssetDatabase.GetAssetPath(evt.newValue);
+                    UpdateReportButtonsState();
                     settings.SaveToPrefs();
                 });
             }
@@ -445,6 +480,10 @@ namespace Razluta.UnityIconGenerationFromModels
                 saveConfigButton.clicked += SaveConfiguration;
             if (loadConfigButton != null)
                 loadConfigButton.clicked += LoadConfiguration;
+            if (viewLastReportButton != null)
+                viewLastReportButton.clicked += ViewLastReport;
+            if (openReportsButton != null)
+                openReportsButton.clicked += OpenReportsFolder;
             if (addSizeButton != null)
                 addSizeButton.clicked += AddSizeVariant;
             if (titleButton != null)
@@ -516,6 +555,107 @@ namespace Razluta.UnityIconGenerationFromModels
             }
             
             prefabCountLabel.text = $"Found Prefabs: {count}";
+        }
+        
+        private void UpdateReportButtonsState()
+        {
+            if (viewLastReportButton == null || openReportsButton == null) return;
+            
+            bool hasValidOutputPath = !string.IsNullOrEmpty(settings.outputFolderPath) && 
+                                    AssetDatabase.IsValidFolder(settings.outputFolderPath);
+            
+            if (hasValidOutputPath)
+            {
+                var reportsFolder = Path.Combine(settings.outputFolderPath, "Reports");
+                bool hasReports = Directory.Exists(reportsFolder) && 
+                                Directory.GetFiles(reportsFolder, "IconGeneration_Report_*.txt").Length > 0;
+                
+                viewLastReportButton.SetEnabled(hasReports);
+                openReportsButton.SetEnabled(true);
+                
+                if (!hasReports)
+                {
+                    viewLastReportButton.tooltip = "No reports found. Generate icons first to create reports.";
+                }
+                else
+                {
+                    viewLastReportButton.tooltip = "View the most recent generation report";
+                }
+                
+                openReportsButton.tooltip = "Open the reports folder in file explorer";
+            }
+            else
+            {
+                viewLastReportButton.SetEnabled(false);
+                openReportsButton.SetEnabled(false);
+                viewLastReportButton.tooltip = "Select an output folder first";
+                openReportsButton.tooltip = "Select an output folder first";
+            }
+        }
+        
+        private void ViewLastReport()
+        {
+            try
+            {
+                var reportsFolder = Path.Combine(settings.outputFolderPath, "Reports");
+                
+                if (!Directory.Exists(reportsFolder))
+                {
+                    EditorUtility.DisplayDialog("No Reports Found", 
+                        "No reports folder found. Generate some icons first to create reports.", "OK");
+                    return;
+                }
+                
+                // Find the most recent report file
+                var reportFiles = Directory.GetFiles(reportsFolder, "IconGeneration_Report_*.txt");
+                
+                if (reportFiles.Length == 0)
+                {
+                    EditorUtility.DisplayDialog("No Reports Found", 
+                        "No report files found in the reports folder.", "OK");
+                    return;
+                }
+                
+                // Sort by creation time and get the most recent
+                Array.Sort(reportFiles, (x, y) => File.GetCreationTime(y).CompareTo(File.GetCreationTime(x)));
+                var latestReport = reportFiles[0];
+                
+                // Read and display the report
+                var reportContent = File.ReadAllText(latestReport);
+                ShowReportWindow(reportContent, Path.GetFileName(latestReport));
+            }
+            catch (Exception e)
+            {
+                EditorUtility.DisplayDialog("Error", $"Failed to load report: {e.Message}", "OK");
+            }
+        }
+        
+        private void OpenReportsFolder()
+        {
+            try
+            {
+                var reportsFolder = Path.Combine(settings.outputFolderPath, "Reports");
+                
+                if (!Directory.Exists(reportsFolder))
+                {
+                    Directory.CreateDirectory(reportsFolder);
+                }
+                
+                // Open the folder in the system file explorer
+                EditorUtility.RevealInFinder(reportsFolder);
+            }
+            catch (Exception e)
+            {
+                EditorUtility.DisplayDialog("Error", $"Failed to open reports folder: {e.Message}", "OK");
+            }
+        }
+        
+        private void ShowReportWindow(string reportContent, string reportName)
+        {
+            var reportWindow = GetWindow<GenerationReportWindow>();
+            reportWindow.titleContent = new GUIContent($"Generation Report - {reportName}");
+            reportWindow.SetReportContent(reportContent, reportName);
+            reportWindow.Show();
         }
         
         private void AddPointLight()
@@ -869,6 +1009,7 @@ namespace Razluta.UnityIconGenerationFromModels
             UpdatePrefabCount();
             UpdateLightingPresetDropdown();
             RefreshAdditionalSizesUI();
+            UpdateReportButtonsState();
         }
         
         private void RefreshField<TField, TValue>(string fieldName, TValue value)
@@ -933,15 +1074,19 @@ namespace Razluta.UnityIconGenerationFromModels
             generateButton.SetEnabled(false);
             statusLabel.text = "Generating icons...";
             
-            var tool = new UnityIconGenerationTool(settings);
-            tool.GenerateIcons(
+            currentTool = new UnityIconGenerationTool(settings);
+            currentTool.GenerateIcons(
                 onProgress: (progress) => {
                     statusLabel.text = progress;
                     Repaint();
                 },
                 onComplete: () => {
                     generateButton.SetEnabled(true);
-                    statusLabel.text = "Icons generated successfully!";
+                    statusLabel.text = "Icons generated successfully! Check the Reports folder for detailed logs.";
+                    
+                    // Enable the view report button and update state
+                    UpdateReportButtonsState();
+                    
                     Repaint();
                 }
             );
