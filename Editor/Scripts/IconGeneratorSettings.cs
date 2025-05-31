@@ -5,6 +5,10 @@ using UnityEngine;
 
 namespace Razluta.UnityIconGenerationFromModels.Editor
 {
+    /// <summary>
+    /// Minimal stub version of IconGeneratorSettings to resolve compilation dependencies
+    /// This will be replaced with the full version once all dependencies are resolved
+    /// </summary>
     [Serializable]
     public class IconGeneratorSettings
     {
@@ -31,6 +35,7 @@ namespace Razluta.UnityIconGenerationFromModels.Editor
         [Header("Lighting")]
         public LightingPreset lightingPreset = LightingPreset.Studio;
         
+        // Core properties that other files reference
         public QualitySettings qualitySettings;
         public MultiFolderManager multiFolderManager;
         public LightingConfiguration lightingConfiguration;
@@ -43,11 +48,14 @@ namespace Razluta.UnityIconGenerationFromModels.Editor
         public IconGeneratorSettings()
         {
             additionalSizes = new List<int> { 64, 128, 256, 1024 };
+            
+            // Initialize placeholder objects to prevent null reference errors
             qualitySettings = new QualitySettings();
             multiFolderManager = new MultiFolderManager();
             lightingConfiguration = new LightingConfiguration();
         }
         
+        // Basic methods that might be called by existing code
         public List<string> ValidateSettings()
         {
             return new List<string>();
@@ -67,12 +75,12 @@ namespace Razluta.UnityIconGenerationFromModels.Editor
         
         public float GetEstimatedProcessingTime()
         {
-            return 10.0f;
+            return 10.0f; // Placeholder
         }
         
         public void ApplyQualityPreset(RenderQualityPreset preset)
         {
-            // Placeholder
+            // Placeholder implementation
         }
         
         public IconGeneratorSettings Clone()
@@ -86,6 +94,7 @@ namespace Razluta.UnityIconGenerationFromModels.Editor
         }
     }
     
+    // Essential enum definitions
     [Serializable]
     public enum ExportFormat
     {
@@ -123,6 +132,89 @@ namespace Razluta.UnityIconGenerationFromModels.Editor
         MSAA16x = 16
     }
     
+    [Serializable]
+    public class QualitySettings
+    {
+        public RenderQualityPreset renderQualityPreset = RenderQualityPreset.Standard;
+        public AntiAliasingLevel antiAliasingLevel = AntiAliasingLevel.MSAA8x;
+        public float renderScale = 1.0f;
+        
+        public static QualitySettings GetPresetConfiguration(RenderQualityPreset preset)
+        {
+            return new QualitySettings();
+        }
+        
+        public string GetPerformanceImpactDescription()
+        {
+            return "Standard quality";
+        }
+    }
+    
+    [Serializable]
+    public class MultiFolderManager
+    {
+        public List<InputFolderConfiguration> InputFolders = new List<InputFolderConfiguration>();
+        
+        public MultiFolderManager()
+        {
+            if (InputFolders.Count == 0)
+            {
+                InputFolders.Add(new InputFolderConfiguration());
+            }
+        }
+        
+        public void AddFolder() { }
+        public void RemoveFolder(int index) { }
+        public List<InputFolderConfiguration> GetValidFolders() { return new List<InputFolderConfiguration>(); }
+        public int GetTotalPrefabCount() { return 0; }
+        public string GetSummary() { return "No folders configured"; }
+        public List<string> ValidateConfiguration() { return new List<string>(); }
+    }
+    
+    [Serializable]
+    public class InputFolderConfiguration
+    {
+        public string folderPath = "";
+        public string prefabPrefix = "";
+        public bool isEnabled = true;
+        
+        public bool IsValid() { return false; }
+        public List<GameObject> GetPrefabs() { return new List<GameObject>(); }
+        public string GetDisplayName() { return "Empty Folder"; }
+    }
+    
+    [Serializable]
+    public class LightingConfiguration
+    {
+        public bool enableMainLight = true;
+        public Vector3 mainLightDirection = new Vector3(-30f, 50f, -30f);
+        public Color mainLightColor = Color.white;
+        public float mainLightIntensity = 1.2f;
+        
+        public bool enableFillLight = true;
+        public Vector3 fillLightDirection = new Vector3(30f, 10f, 30f);
+        public Color fillLightColor = new Color(0.8f, 0.9f, 1.0f);
+        public float fillLightIntensity = 0.4f;
+        
+        public List<PointLightConfiguration> pointLights = new List<PointLightConfiguration>();
+        public Color ambientColor = new Color(0.2f, 0.2f, 0.25f);
+        public float ambientIntensity = 0.3f;
+        
+        public void AddPointLight() { }
+        public void RemovePointLight(int index) { }
+        public int GetEnabledPointLightCount() { return 0; }
+    }
+    
+    [Serializable]
+    public class PointLightConfiguration
+    {
+        public bool enabled = true;
+        public Vector3 position = Vector3.zero;
+        public Color color = Color.white;
+        public float intensity = 1.0f;
+        public float range = 10.0f;
+    }
+} to satisfy dependencies
     [Serializable]
     public class QualitySettings
     {
@@ -270,9 +362,6 @@ namespace Razluta.UnityIconGenerationFromModels.Editor
         
         public LightingConfiguration()
         {
-            if (pointLights == null)
-                pointLights = new List<PointLightConfiguration>();
-                
             if (pointLights.Count == 0)
             {
                 pointLights.Add(new PointLightConfiguration(
@@ -329,5 +418,87 @@ namespace Razluta.UnityIconGenerationFromModels.Editor
             intensity = inten;
             range = ran;
         }
+    }
+}[Serializable]
+    public class QualitySettings
+    {
+        public RenderQualityPreset renderQualityPreset = RenderQualityPreset.Standard;
+        public AntiAliasingLevel antiAliasingLevel = AntiAliasingLevel.MSAA8x;
+        public float renderScale = 1.0f;
+        
+        public static QualitySettings GetPresetConfiguration(RenderQualityPreset preset)
+        {
+            return new QualitySettings();
+        }
+        
+        public string GetPerformanceImpactDescription()
+        {
+            return "Standard quality";
+        }
+    }
+    
+    [Serializable]
+    public class MultiFolderManager
+    {
+        public List<InputFolderConfiguration> InputFolders = new List<InputFolderConfiguration>();
+        
+        public MultiFolderManager()
+        {
+            if (InputFolders.Count == 0)
+            {
+                InputFolders.Add(new InputFolderConfiguration());
+            }
+        }
+        
+        public void AddFolder() { }
+        public void RemoveFolder(int index) { }
+        public List<InputFolderConfiguration> GetValidFolders() { return new List<InputFolderConfiguration>(); }
+        public int GetTotalPrefabCount() { return 0; }
+        public string GetSummary() { return "No folders configured"; }
+        public List<string> ValidateConfiguration() { return new List<string>(); }
+    }
+    
+    [Serializable]
+    public class InputFolderConfiguration
+    {
+        public string folderPath = "";
+        public string prefabPrefix = "";
+        public bool isEnabled = true;
+        
+        public bool IsValid() { return false; }
+        public List<GameObject> GetPrefabs() { return new List<GameObject>(); }
+        public string GetDisplayName() { return "Empty Folder"; }
+    }
+    
+    [Serializable]
+    public class LightingConfiguration
+    {
+        public bool enableMainLight = true;
+        public Vector3 mainLightDirection = new Vector3(-30f, 50f, -30f);
+        public Color mainLightColor = Color.white;
+        public float mainLightIntensity = 1.2f;
+        
+        public bool enableFillLight = true;
+        public Vector3 fillLightDirection = new Vector3(30f, 10f, 30f);
+        public Color fillLightColor = new Color(0.8f, 0.9f, 1.0f);
+        public float fillLightIntensity = 0.4f;
+        
+        public List<PointLightConfiguration> pointLights = new List<PointLightConfiguration>();
+        public Color ambientColor = new Color(0.2f, 0.2f, 0.25f);
+        public float ambientIntensity = 0.3f;
+        
+        public void AddPointLight() { }
+        public void RemovePointLight(int index) { }
+        public int GetEnabledPointLightCount() { return 0; }
+    }
+    
+    [Serializable]
+    public class PointLightConfiguration
+    {
+        public bool enabled = true;
+        public Vector3 position = Vector3.zero;
+        public Color color = Color.white;
+        public float intensity = 1.0f;
+        public float range = 10.0f;
     }
 }
