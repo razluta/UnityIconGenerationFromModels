@@ -6,7 +6,7 @@ namespace Razluta.UnityIconGenerationFromModels.Editor
 {
     /// <summary>
     /// Complete settings configuration for Unity Icon Generation Tool v1.2.0
-    /// Includes all new quality, multi-folder, and reporting features
+    /// This file must be created first to resolve dependencies
     /// </summary>
     [Serializable]
     public class IconGeneratorSettings
@@ -84,8 +84,11 @@ namespace Razluta.UnityIconGenerationFromModels.Editor
             }
             
             // Validate multi-folder configuration
-            var folderIssues = multiFolderManager.ValidateConfiguration();
-            issues.AddRange(folderIssues);
+            if (multiFolderManager != null)
+            {
+                var folderIssues = multiFolderManager.ValidateConfiguration();
+                issues.AddRange(folderIssues);
+            }
             
             // Validate icon sizes
             if (mainIconSize <= 0)
@@ -125,7 +128,7 @@ namespace Razluta.UnityIconGenerationFromModels.Editor
         /// </summary>
         public int GetTotalIconCount()
         {
-            var prefabCount = multiFolderManager.GetTotalPrefabCount();
+            var prefabCount = multiFolderManager?.GetTotalPrefabCount() ?? 0;
             var sizeCount = GetAllSizes().Count;
             return prefabCount * sizeCount;
         }
@@ -135,21 +138,21 @@ namespace Razluta.UnityIconGenerationFromModels.Editor
         /// </summary>
         public float GetEstimatedProcessingTime()
         {
-            var prefabCount = multiFolderManager.GetTotalPrefabCount();
+            var prefabCount = multiFolderManager?.GetTotalPrefabCount() ?? 0;
             var sizeCount = GetAllSizes().Count;
             var totalOperations = prefabCount * sizeCount;
             
             // Base time per operation (seconds)
-            float baseTimePerOperation = qualitySettings.renderQualityPreset switch
+            float baseTimePerOperation = qualitySettings?.renderQualityPreset switch
             {
                 RenderQualityPreset.Draft => 0.5f,
                 RenderQualityPreset.Standard => 1.5f,
                 RenderQualityPreset.HighQuality => 4.0f,
                 _ => 1.5f
-            };
+            } ?? 1.5f;
             
             // Adjust for anti-aliasing
-            float aaMultiplier = qualitySettings.antiAliasingLevel switch
+            float aaMultiplier = qualitySettings?.antiAliasingLevel switch
             {
                 AntiAliasingLevel.None => 0.8f,
                 AntiAliasingLevel.MSAA2x => 1.0f,
@@ -157,10 +160,11 @@ namespace Razluta.UnityIconGenerationFromModels.Editor
                 AntiAliasingLevel.MSAA8x => 1.5f,
                 AntiAliasingLevel.MSAA16x => 2.0f,
                 _ => 1.0f
-            };
+            } ?? 1.0f;
             
             // Adjust for render scale
-            float scaleMultiplier = Mathf.Pow(qualitySettings.renderScale, 1.5f);
+            float scaleMultiplier = qualitySettings?.renderScale ?? 1.0f;
+            scaleMultiplier = Mathf.Pow(scaleMultiplier, 1.5f);
             
             return totalOperations * baseTimePerOperation * aaMultiplier * scaleMultiplier;
         }
@@ -170,7 +174,10 @@ namespace Razluta.UnityIconGenerationFromModels.Editor
         /// </summary>
         public void ApplyQualityPreset(RenderQualityPreset preset)
         {
-            qualitySettings = QualitySettings.GetPresetConfiguration(preset);
+            if (qualitySettings != null)
+            {
+                qualitySettings = QualitySettings.GetPresetConfiguration(preset);
+            }
         }
         
         /// <summary>
@@ -189,8 +196,8 @@ namespace Razluta.UnityIconGenerationFromModels.Editor
         {
             var summary = new System.Text.StringBuilder();
             
-            summary.AppendLine($"Quality: {qualitySettings.renderQualityPreset} ({qualitySettings.antiAliasingLevel})");
-            summary.AppendLine($"Input: {multiFolderManager.GetSummary()}");
+            summary.AppendLine($"Quality: {qualitySettings?.renderQualityPreset} ({qualitySettings?.antiAliasingLevel})");
+            summary.AppendLine($"Input: {multiFolderManager?.GetSummary()}");
             summary.AppendLine($"Output: {exportFormat}, {GetAllSizes().Count} sizes");
             summary.AppendLine($"Lighting: {lightingPreset}");
             summary.AppendLine($"Estimated time: {GetEstimatedProcessingTime():F1}s");
@@ -210,7 +217,7 @@ namespace Razluta.UnityIconGenerationFromModels.Editor
     }
     
     /// <summary>
-    /// Lighting preset enumeration (existing, expanded for v1.2.0)
+    /// Lighting preset enumeration (expanded for v1.2.0)
     /// </summary>
     [Serializable]
     public enum LightingPreset
@@ -311,5 +318,208 @@ namespace Razluta.UnityIconGenerationFromModels.Editor
         {
             return pointLights.Count(light => light.enabled);
         }
+    }
+    
+    // Placeholder classes that will be replaced when the full files are created
+    
+    /// <summary>
+    /// Temporary placeholder for QualitySettings - will be replaced
+    /// </summary>
+    [Serializable]
+    public class QualitySettings
+    {
+        public RenderQualityPreset renderQualityPreset = RenderQualityPreset.Standard;
+        public AntiAliasingLevel antiAliasingLevel = AntiAliasingLevel.MSAA8x;
+        public float renderScale = 1.0f;
+        public bool enableHDR = true;
+        public bool enableShadows = true;
+        public int shadowResolution = 1024;
+        public float shadowDistance = 5.0f;
+        public int anisotropicFiltering = 4;
+        
+        public static QualitySettings GetPresetConfiguration(RenderQualityPreset preset)
+        {
+            var settings = new QualitySettings();
+            
+            switch (preset)
+            {
+                case RenderQualityPreset.Draft:
+                    settings.antiAliasingLevel = AntiAliasingLevel.MSAA2x;
+                    settings.renderScale = 0.75f;
+                    settings.enableHDR = false;
+                    settings.enableShadows = false;
+                    break;
+                    
+                case RenderQualityPreset.HighQuality:
+                    settings.antiAliasingLevel = AntiAliasingLevel.MSAA16x;
+                    settings.renderScale = 1.5f;
+                    settings.shadowResolution = 2048;
+                    break;
+            }
+            
+            return settings;
+        }
+        
+        public string GetPerformanceImpactDescription()
+        {
+            return renderQualityPreset switch
+            {
+                RenderQualityPreset.Draft => "⚡ Fast - Good for quick previews",
+                RenderQualityPreset.HighQuality => "🐌 Slow - Maximum quality",
+                _ => "⚖️ Balanced - Good quality with reasonable speed"
+            };
+        }
+    }
+    
+    /// <summary>
+    /// Temporary placeholder for MultiFolderManager - will be replaced
+    /// </summary>
+    [Serializable]
+    public class MultiFolderManager
+    {
+        public List<InputFolderConfiguration> InputFolders = new List<InputFolderConfiguration>();
+        
+        public MultiFolderManager()
+        {
+            if (InputFolders.Count == 0)
+            {
+                InputFolders.Add(new InputFolderConfiguration());
+            }
+        }
+        
+        public void AddFolder()
+        {
+            InputFolders.Add(new InputFolderConfiguration());
+        }
+        
+        public void RemoveFolder(int index)
+        {
+            if (index >= 0 && index < InputFolders.Count && InputFolders.Count > 1)
+            {
+                InputFolders.RemoveAt(index);
+            }
+        }
+        
+        public List<InputFolderConfiguration> GetValidFolders()
+        {
+            return InputFolders.Where(folder => folder.IsValid()).ToList();
+        }
+        
+        public int GetTotalPrefabCount()
+        {
+            return GetValidFolders().Sum(folder => folder.GetPrefabs().Count);
+        }
+        
+        public string GetSummary()
+        {
+            var validFolders = GetValidFolders();
+            var totalPrefabs = GetTotalPrefabCount();
+            
+            if (validFolders.Count == 0)
+                return "No valid folders configured";
+                
+            if (validFolders.Count == 1)
+                return $"1 folder with {totalPrefabs} prefabs";
+                
+            return $"{validFolders.Count} folders with {totalPrefabs} total prefabs";
+        }
+        
+        public List<string> ValidateConfiguration()
+        {
+            var issues = new List<string>();
+            
+            var validFolders = GetValidFolders();
+            if (validFolders.Count == 0)
+            {
+                issues.Add("No valid input folders configured");
+            }
+            
+            return issues;
+        }
+    }
+    
+    /// <summary>
+    /// Temporary placeholder for InputFolderConfiguration - will be replaced
+    /// </summary>
+    [Serializable]
+    public class InputFolderConfiguration
+    {
+        public string folderPath = "";
+        public string prefabPrefix = "";
+        public bool isEnabled = true;
+        public bool useCustomSettings = false;
+        public Vector3 customObjectScale = Vector3.one;
+        public Vector3 customObjectPosition = Vector3.zero;
+        public Vector3 customObjectRotation = Vector3.zero;
+        
+        public bool IsValid()
+        {
+            return !string.IsNullOrEmpty(folderPath) && 
+                   System.IO.Directory.Exists(folderPath) && 
+                   !string.IsNullOrEmpty(prefabPrefix) &&
+                   isEnabled;
+        }
+        
+        public List<GameObject> GetPrefabs()
+        {
+            var prefabs = new List<GameObject>();
+            
+            if (!IsValid())
+                return prefabs;
+                
+            try
+            {
+                var prefabFiles = System.IO.Directory.GetFiles(folderPath, "*.prefab", System.IO.SearchOption.TopDirectoryOnly)
+                    .Where(file => System.IO.Path.GetFileNameWithoutExtension(file).StartsWith(prefabPrefix))
+                    .ToArray();
+                    
+                foreach (var prefabFile in prefabFiles)
+                {
+                    var relativePath = prefabFile.Replace(Application.dataPath, "Assets");
+                    var prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(relativePath);
+                    
+                    if (prefab != null)
+                    {
+                        prefabs.Add(prefab);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Error loading prefabs from {folderPath}: {ex.Message}");
+            }
+            
+            return prefabs;
+        }
+        
+        public string GetDisplayName()
+        {
+            if (string.IsNullOrEmpty(folderPath))
+                return "Empty Folder";
+                
+            var folderName = System.IO.Path.GetFileName(folderPath);
+            var prefabCount = GetPrefabs().Count;
+            
+            return $"{folderName} ({prefabPrefix}*) - {prefabCount} prefabs";
+        }
+    }
+    
+    // Enums needed by the system
+    [Serializable]
+    public enum RenderQualityPreset
+    {
+        Draft = 0,
+        Standard = 1,
+        HighQuality = 2
+    }
+    
+    [Serializable]
+    public enum AntiAliasingLevel
+    {
+        None = 1,
+        MSAA2x = 2,
+        MSAA4x = 4,
+        MSAA8x = 8,
+        MSAA16x = 16
     }
 }
