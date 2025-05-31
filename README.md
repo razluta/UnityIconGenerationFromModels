@@ -1,19 +1,23 @@
 # Unity Icon Generation From Models
 
-A Unity Editor tool for generating transparent icons from 3D model prefabs with customizable rendering environments, featuring visual scene mockups and real-time preview capabilities.
+> *The creation of this tool was performed in collaboration with [Claude 4](https://www.anthropic.com/claude).*
+
+A Unity Editor tool for generating transparent icons from 3D model prefabs with customizable rendering environments, featuring visual scene mockups, real-time preview capabilities, and professional lighting presets.
 
 ![Unity Icon Generation Tool Interface](Samples/SampleUi.png)
 
 ## Features
 
+- **Professional Lighting Presets**: Built-in presets (Studio, Dramatic, Soft, Product Shot, Cinematic, Technical)
+- **Complete Configuration Management**: Save and load entire tool configurations as reusable presets
 - **Batch Processing**: Generate icons for multiple prefabs at once
 - **Visual Scene Mockup**: Create and adjust lighting setups directly in the scene view
 - **Real-time Preview**: Capture and preview icons before batch generation
-- **Advanced Lighting System**: Main light + fill light + unlimited point lights
+- **Advanced Lighting System**: Main light + fill light + unlimited point lights with individual controls
 - **Customizable Rendering**: Configure camera angle, lighting, and object positioning
 - **Transparent Backgrounds**: Generates PNG icons with transparency
 - **Auto-fit and Auto-center**: Automatically position and scale objects for optimal framing
-- **Scene Management**: Preserves your current scene and handles unsaved changes
+- **Scene Management**: Preserves your current scene and handles unsaved changes intelligently
 - **Unity 6 Compatible**: Built with Unity's UI Toolkit for modern editor integration
 - **Persistent Settings**: Remembers your configuration between sessions
 
@@ -42,19 +46,28 @@ A Unity Editor tool for generating transparent icons from 3D model prefabs with 
 ### Quick Start Workflow
 
 1. **Basic Setup**:
-   - Select your prefabs folder (e.g., `Assets/Prefabs`)
-   - Enter the prefix your prefabs start with (e.g., `Item_`)
-   - Select or create an output folder for generated icons
+    - Select your prefabs folder (e.g., `Assets/Prefabs`)
+    - Enter the prefix your prefabs start with (e.g., `Item_`)
+    - Select or create an output folder for generated icons
 
-2. **Visual Configuration**:
-   - Click **"Setup Scene Mockup"** to create a visual preview in your scene
-   - Manually adjust camera position, lighting, and settings using Unity's normal tools
-   - Click **"Capture Preview"** to see exactly what your icon will look like
-   - Click **"Collect Scene Configuration"** to save your adjustments back to the tool
+2. **Choose Lighting Style**:
+    - **Quick Start**: Select a lighting preset from the dropdown (Studio, Dramatic, etc.)
+    - **Custom Setup**: Manually configure main light, fill light, and point lights
+    - **Professional Workflow**: Use scene mockup for visual adjustment
 
-3. **Generate Icons**:
-   - Click **"Generate Icons"** to batch process all matching prefabs
-   - Your original scene will be preserved and restored automatically
+3. **Visual Configuration** (Optional but Recommended):
+    - Click **"Setup Scene Mockup"** to create a visual preview in your scene
+    - Manually adjust camera position, lighting, and settings using Unity's normal tools
+    - Click **"Capture Preview"** to see exactly what your icon will look like
+    - Click **"Collect Scene Configuration"** to save your adjustments back to the tool
+
+4. **Save Your Setup** (Optional):
+    - Click **"Save Configuration"** to save your entire setup as a reusable preset
+    - Perfect for different object types (weapons, armor, consumables, etc.)
+
+5. **Generate Icons**:
+    - Click **"Generate Icons"** to batch process all matching prefabs
+    - Your original scene will be preserved and restored automatically
 
 ### Advanced Configuration
 
@@ -65,12 +78,32 @@ A Unity Editor tool for generating transparent icons from 3D model prefabs with 
 - **Background Color**: Usually set to transparent (alpha = 0)
 
 #### Lighting System
+
+##### Professional Lighting Presets
+Choose from built-in lighting configurations optimized for different scenarios:
+
+- **Studio**: Balanced professional lighting with warm key and cool fill
+- **Dramatic**: High contrast with strong shadows and cinematic feel
+- **Soft**: Even, diffused lighting perfect for delicate objects
+- **Product Shot**: Clean, minimal shadows with 360° coverage
+- **Cinematic**: Moody atmospheric lighting with warm/cool contrast
+- **Technical**: Flat, even documentation lighting for technical drawings
+- **Custom**: Your own manual lighting configuration
+
+##### Advanced Lighting Controls
 - **Main Light**: Primary directional light (key light)
 - **Fill Light**: Secondary directional light to reduce harsh shadows
 - **Point Lights**: Add unlimited point lights for accent lighting, rim lighting, etc.
-   - Each point light has position, color, intensity, range, and enabled settings
-   - Use "Add Point Light" button to create new lights
-   - Individual remove buttons for each light
+    - Each point light has position, color, intensity, range, and enabled settings
+    - Use "Add Point Light" button to create new lights
+    - Individual remove buttons for each light
+- **Smart Preset Detection**: Automatically switches to "Custom" when you manually adjust any lighting
+
+#### Complete Configuration Management
+- **Save Configuration**: Export your entire tool setup (lighting, camera, all settings) as a JSON file
+- **Load Configuration**: Import previously saved configurations
+- **Team Sharing**: Share configuration files with team members for consistent results
+- **Project-Specific Setups**: Create different configurations for different asset types
 
 #### Advanced Object Settings
 - **Object Scale**: Global scale multiplier for all objects
@@ -86,6 +119,13 @@ A Unity Editor tool for generating transparent icons from 3D model prefabs with 
 
 ## Preview & Configuration Tools
 
+### Professional Lighting Presets
+Select from professionally designed lighting setups:
+- **Quick Selection**: Choose from dropdown in Lighting Settings
+- **Instant Application**: All lights (main, fill, point) automatically configured
+- **Smart Detection**: Tool automatically switches to "Custom" when you manually adjust lighting
+- **Optimized for Different Needs**: Each preset designed for specific object types and styles
+
 ### Setup Scene Mockup
 Creates a complete visual mockup of your icon generation setup in the current scene:
 - Camera positioned with your exact settings
@@ -96,9 +136,9 @@ Creates a complete visual mockup of your icon generation setup in the current sc
 ### Capture Preview
 Takes a snapshot using your current configuration:
 - Renders at exact icon dimensions
-- Shows preview in dedicated window
-- Save option to export preview as PNG
+- Shows preview in dedicated window with save option
 - Perfect for testing before batch generation
+- Instant visual feedback on lighting and positioning
 
 ### Collect Scene Configuration
 Reads your manual adjustments back into the tool:
@@ -106,6 +146,13 @@ Reads your manual adjustments back into the tool:
 - Updates UI with collected settings
 - Saves configuration for future use
 - Enables iterative refinement workflow
+
+### Configuration Management
+Save and load complete tool configurations:
+- **Export Setup**: Save entire configuration as JSON file
+- **Import Setup**: Load previously saved configurations
+- **Team Collaboration**: Share configuration files with team members
+- **Project Organization**: Create different setups for different asset types
 
 ## File Structure
 
@@ -122,6 +169,8 @@ com.razluta.unity-icon-generation-from-models/
 │   │   ├── UnityIconGenerationWindow.cs             # Main UI window
 │   │   ├── UnityIconGenerationTool.cs               # Core generation logic
 │   │   ├── SceneMockupTool.cs                       # Scene mockup and preview system
+│   │   ├── LightingPresets.cs                       # Professional lighting presets
+│   │   ├── ConfigurationPresets.cs                  # Configuration save/load system
 │   │   └── IconGeneratorSettings.cs                 # Settings management
 │   └── Resources/
 │       └── IconGeneratorWindow.uxml                 # UI layout definition
@@ -204,11 +253,14 @@ com.razluta.unity-icon-generation-from-models/
 
 ### Workflow Tips
 
-- **Start with scene mockup** to get visual feedback on your setup
-- **Use capture preview extensively** to test different configurations
-- **Iterate quickly** with the mockup → preview → adjust cycle
-- **Save different configurations** by using "Collect Scene Configuration"
+- **Start with lighting presets** - Choose Studio, Dramatic, or Product Shot for instant professional results
+- **Use scene mockup extensively** to get visual feedback on your setup
+- **Save configurations for different asset types** - Create "WeaponIcons.json", "ArmorIcons.json", etc.
+- **Use capture preview extensively** to test different lighting configurations
+- **Iterate quickly** with the preset → mockup → preview → adjust cycle
+- **Share configurations with your team** for consistent visual style across projects
 - **Test with one prefab first** before running full batch generation
+- **Combine presets with manual adjustments** - Start with a preset, then fine-tune manually
 
 ## Version History
 
