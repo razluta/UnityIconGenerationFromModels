@@ -215,7 +215,7 @@ namespace Razluta.UnityIconGenerationFromModels
             autoFit.name = "auto-fit";
             advancedFoldout.Add(autoFit);
             
-            // Preview & Configuration Buttons
+            // Configuration Presets
             var configPresetsLabel = new Label("Configuration Presets");
             configPresetsLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
             configPresetsLabel.style.marginTop = 20;
@@ -241,6 +241,7 @@ namespace Razluta.UnityIconGenerationFromModels
             loadConfigButton.style.marginLeft = 2;
             configButtonRow.Add(loadConfigButton);
             
+            // Preview & Configuration
             var previewConfigLabel = new Label("Preview & Configuration");
             previewConfigLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
             previewConfigLabel.style.marginBottom = 5;
@@ -872,66 +873,4 @@ namespace Razluta.UnityIconGenerationFromModels
             }
         }
     }
-    
-    public class ConfigurationNameDialog : EditorWindow
-    {
-        private ConfigurationPreset preset;
-        private string presetName = "";
-        private string description = "";
-        public System.Action<ConfigurationPreset> onSave;
-        
-        public ConfigurationNameDialog(ConfigurationPreset preset)
-        {
-            this.preset = preset;
-            this.presetName = preset.presetName;
-            this.description = preset.description;
-        }
-        
-        public void ShowModal()
-        {
-            var window = GetWindow<ConfigurationNameDialog>(true, "Save Configuration", true);
-            window.minSize = new Vector2(350, 200);
-            window.maxSize = new Vector2(350, 200);
-            window.ShowModal();
-        }
-        
-        private void OnGUI()
-        {
-            GUILayout.Space(10);
-            GUILayout.Label("Save Configuration Preset", EditorStyles.boldLabel);
-            GUILayout.Space(10);
-            
-            GUILayout.Label("Name:");
-            presetName = EditorGUILayout.TextField(presetName);
-            GUILayout.Space(5);
-            
-            GUILayout.Label("Description:");
-            description = EditorGUILayout.TextArea(description, GUILayout.Height(60));
-            GUILayout.Space(10);
-            
-            GUILayout.BeginHorizontal();
-            GUILayout.FlexibleSpace();
-            
-            if (GUILayout.Button("Cancel", GUILayout.Width(80)))
-            {
-                Close();
-            }
-            
-            GUILayout.Space(5);
-            
-            GUI.enabled = !string.IsNullOrEmpty(presetName.Trim());
-            if (GUILayout.Button("Save", GUILayout.Width(80)))
-            {
-                preset.presetName = presetName.Trim();
-                preset.description = description;
-                preset.dateCreated = System.DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-                preset.createdBy = System.Environment.UserName;
-                
-                onSave?.Invoke(preset);
-                Close();
-            }
-            GUI.enabled = true;
-            
-            GUILayout.EndHorizontal();
-        }
 }
