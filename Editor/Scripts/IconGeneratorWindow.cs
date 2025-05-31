@@ -19,6 +19,9 @@ namespace Razluta.UnityIconGenerationFromModels
         private Button setupMockupButton;
         private Button capturePreviewButton;
         private Button collectConfigButton;
+        private Button saveConfigButton;
+        private Button loadConfigButton;
+        private DropdownField lightingPresetDropdown;
         
         [MenuItem("Tools/Razluta/Unity Icon Generation From Models")]
         public static void ShowWindow()
@@ -130,6 +133,12 @@ namespace Razluta.UnityIconGenerationFromModels
             var lightingFoldout = new Foldout { text = "Lighting Settings", value = false };
             container.Add(lightingFoldout);
             
+            // Lighting Preset Dropdown
+            lightingPresetDropdown = new DropdownField("Lighting Preset");
+            lightingPresetDropdown.name = "lighting-preset-dropdown";
+            lightingPresetDropdown.style.marginBottom = 10;
+            lightingFoldout.Add(lightingPresetDropdown);
+            
             var mainLightLabel = new Label("Main Light");
             mainLightLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
             lightingFoldout.Add(mainLightLabel);
@@ -205,9 +214,33 @@ namespace Razluta.UnityIconGenerationFromModels
             advancedFoldout.Add(autoFit);
             
             // Preview & Configuration Buttons
+            var configPresetsLabel = new Label("Configuration Presets");
+            configPresetsLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            configPresetsLabel.style.marginTop = 20;
+            configPresetsLabel.style.marginBottom = 5;
+            container.Add(configPresetsLabel);
+            
+            var configButtonRow = new VisualElement();
+            configButtonRow.style.flexDirection = FlexDirection.Row;
+            configButtonRow.style.marginBottom = 10;
+            container.Add(configButtonRow);
+            
+            saveConfigButton = new Button(() => SaveConfiguration()) { text = "Save Configuration" };
+            saveConfigButton.name = "save-config-button";
+            saveConfigButton.style.height = 30;
+            saveConfigButton.style.flexGrow = 1;
+            saveConfigButton.style.marginRight = 2;
+            configButtonRow.Add(saveConfigButton);
+            
+            loadConfigButton = new Button(() => LoadConfiguration()) { text = "Load Configuration" };
+            loadConfigButton.name = "load-config-button";
+            loadConfigButton.style.height = 30;
+            loadConfigButton.style.flexGrow = 1;
+            loadConfigButton.style.marginLeft = 2;
+            configButtonRow.Add(loadConfigButton);
+            
             var previewConfigLabel = new Label("Preview & Configuration");
             previewConfigLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
-            previewConfigLabel.style.marginTop = 20;
             previewConfigLabel.style.marginBottom = 5;
             container.Add(previewConfigLabel);
             
@@ -271,6 +304,12 @@ namespace Razluta.UnityIconGenerationFromModels
             setupMockupButton = root.Q<Button>("setup-mockup-button");
             capturePreviewButton = root.Q<Button>("capture-preview-button");
             collectConfigButton = root.Q<Button>("collect-config-button");
+            saveConfigButton = root.Q<Button>("save-config-button");
+            loadConfigButton = root.Q<Button>("load-config-button");
+            lightingPresetDropdown = root.Q<DropdownField>("lighting-preset-dropdown");
+            
+            // Setup lighting preset dropdown
+            SetupLightingPresetDropdown();
             
             // Bind input settings
             var inputFolder = root.Q<ObjectField>("input-folder");
@@ -318,12 +357,36 @@ namespace Razluta.UnityIconGenerationFromModels
             BindField<ColorField, Color>("background-color", settings.backgroundColor, val => settings.backgroundColor = val);
             
             // Bind lighting settings
-            BindField<Vector3Field, Vector3>("main-light-direction", settings.mainLightDirection, val => settings.mainLightDirection = val);
-            BindField<ColorField, Color>("main-light-color", settings.mainLightColor, val => settings.mainLightColor = val);
-            BindField<FloatField, float>("main-light-intensity", settings.mainLightIntensity, val => settings.mainLightIntensity = val);
-            BindField<Vector3Field, Vector3>("fill-light-direction", settings.fillLightDirection, val => settings.fillLightDirection = val);
-            BindField<ColorField, Color>("fill-light-color", settings.fillLightColor, val => settings.fillLightColor = val);
-            BindField<FloatField, float>("fill-light-intensity", settings.fillLightIntensity, val => settings.fillLightIntensity = val);
+            BindField<Vector3Field, Vector3>("main-light-direction", settings.mainLightDirection, val => {
+                settings.mainLightDirection = val;
+                settings.OnLightingChanged();
+                UpdateLightingPresetDropdown();
+            });
+            BindField<ColorField, Color>("main-light-color", settings.mainLightColor, val => {
+                settings.mainLightColor = val;
+                settings.OnLightingChanged();
+                UpdateLightingPresetDropdown();
+            });
+            BindField<FloatField, float>("main-light-intensity", settings.mainLightIntensity, val => {
+                settings.mainLightIntensity = val;
+                settings.OnLightingChanged();
+                UpdateLightingPresetDropdown();
+            });
+            BindField<Vector3Field, Vector3>("fill-light-direction", settings.fillLightDirection, val => {
+                settings.fillLightDirection = val;
+                settings.OnLightingChanged();
+                UpdateLightingPresetDropdown();
+            });
+            BindField<ColorField, Color>("fill-light-color", settings.fillLightColor, val => {
+                settings.fillLightColor = val;
+                settings.OnLightingChanged();
+                UpdateLightingPresetDropdown();
+            });
+            BindField<FloatField, float>("fill-light-intensity", settings.fillLightIntensity, val => {
+                settings.fillLightIntensity = val;
+                settings.OnLightingChanged();
+                UpdateLightingPresetDropdown();
+            });
             
             // Bind advanced settings
             BindField<FloatField, float>("object-scale", settings.objectScale, val => settings.objectScale = val);
@@ -348,6 +411,10 @@ namespace Razluta.UnityIconGenerationFromModels
                 capturePreviewButton.clicked += CapturePreview;
             if (collectConfigButton != null)
                 collectConfigButton.clicked += CollectSceneConfiguration;
+            if (saveConfigButton != null)
+                saveConfigButton.clicked += SaveConfiguration;
+            if (loadConfigButton != null)
+                loadConfigButton.clicked += LoadConfiguration;
         }
         
         private void BindUIElementsFallback()
@@ -418,6 +485,87 @@ namespace Razluta.UnityIconGenerationFromModels
         {
             settings.RemovePointLight(index);
             RefreshPointLightsUI();
+        }
+        
+        private void SetupLightingPresetDropdown()
+        {
+            if (lightingPresetDropdown == null) return;
+            
+            var presetNames = new List<string>();
+            var presetTypes = LightingPresets.GetAllPresetTypes();
+            
+            foreach (var presetType in presetTypes)
+            {
+                presetNames.Add(LightingPresets.GetPresetDisplayName(presetType));
+            }
+            
+            lightingPresetDropdown.choices = presetNames;
+            lightingPresetDropdown.value = LightingPresets.GetPresetDisplayName(settings.currentLightingPreset);
+            
+            lightingPresetDropdown.RegisterValueChangedCallback(evt => {
+                var selectedIndex = lightingPresetDropdown.choices.IndexOf(evt.newValue);
+                if (selectedIndex >= 0 && selectedIndex < presetTypes.Length)
+                {
+                    var selectedPreset = presetTypes[selectedIndex];
+                    settings.ApplyLightingPreset(selectedPreset);
+                    RefreshLightingUIFromSettings();
+                    RefreshPointLightsUI();
+                }
+            });
+        }
+        
+        private void UpdateLightingPresetDropdown()
+        {
+            if (lightingPresetDropdown == null) return;
+            lightingPresetDropdown.value = LightingPresets.GetPresetDisplayName(settings.currentLightingPreset);
+        }
+        
+        private void RefreshLightingUIFromSettings()
+        {
+            RefreshField<Vector3Field, Vector3>("main-light-direction", settings.mainLightDirection);
+            RefreshField<ColorField, Color>("main-light-color", settings.mainLightColor);
+            RefreshField<FloatField, float>("main-light-intensity", settings.mainLightIntensity);
+            RefreshField<Vector3Field, Vector3>("fill-light-direction", settings.fillLightDirection);
+            RefreshField<ColorField, Color>("fill-light-color", settings.fillLightColor);
+            RefreshField<FloatField, float>("fill-light-intensity", settings.fillLightIntensity);
+        }
+        
+        private void SaveConfiguration()
+        {
+            var preset = ConfigurationPreset.FromSettings(settings);
+            
+            // Show dialog to get preset name and description
+            var nameDialog = new ConfigurationNameDialog(preset);
+            nameDialog.ShowModal();
+            nameDialog.onSave += (configPreset) => {
+                if (ConfigurationPresetsManager.SaveConfiguration(configPreset))
+                {
+                    statusLabel.text = "Configuration saved successfully!";
+                }
+            };
+        }
+        
+        private void LoadConfiguration()
+        {
+            var preset = ConfigurationPresetsManager.LoadConfiguration();
+            if (preset != null)
+            {
+                ConfigurationPresetsManager.ShowConfigurationInfo(preset);
+                
+                var result = EditorUtility.DisplayDialog(
+                    "Load Configuration",
+                    $"Load configuration '{preset.presetName}'?\n\nThis will overwrite your current settings.",
+                    "Load",
+                    "Cancel"
+                );
+                
+                if (result)
+                {
+                    preset.ApplyToSettings(settings);
+                    RefreshAllUIFromSettings();
+                    statusLabel.text = $"Configuration '{preset.presetName}' loaded successfully!";
+                }
+            }
         }
         
         private void RefreshPointLightsUI()
@@ -588,6 +736,7 @@ namespace Razluta.UnityIconGenerationFromModels
             
             RefreshPointLightsUI();
             UpdatePrefabCount();
+            UpdateLightingPresetDropdown();
         }
         
         private void RefreshField<TField, TValue>(string fieldName, TValue value)
@@ -713,4 +862,66 @@ namespace Razluta.UnityIconGenerationFromModels
             }
         }
     }
+    
+    public class ConfigurationNameDialog : EditorWindow
+    {
+        private ConfigurationPreset preset;
+        private string presetName = "";
+        private string description = "";
+        public System.Action<ConfigurationPreset> onSave;
+        
+        public ConfigurationNameDialog(ConfigurationPreset preset)
+        {
+            this.preset = preset;
+            this.presetName = preset.presetName;
+            this.description = preset.description;
+        }
+        
+        public void ShowModal()
+        {
+            var window = GetWindow<ConfigurationNameDialog>(true, "Save Configuration", true);
+            window.minSize = new Vector2(350, 200);
+            window.maxSize = new Vector2(350, 200);
+            window.ShowModal();
+        }
+        
+        private void OnGUI()
+        {
+            GUILayout.Space(10);
+            GUILayout.Label("Save Configuration Preset", EditorStyles.boldLabel);
+            GUILayout.Space(10);
+            
+            GUILayout.Label("Name:");
+            presetName = EditorGUILayout.TextField(presetName);
+            GUILayout.Space(5);
+            
+            GUILayout.Label("Description:");
+            description = EditorGUILayout.TextArea(description, GUILayout.Height(60));
+            GUILayout.Space(10);
+            
+            GUILayout.BeginHorizontal();
+            GUILayout.FlexibleSpace();
+            
+            if (GUILayout.Button("Cancel", GUILayout.Width(80)))
+            {
+                Close();
+            }
+            
+            GUILayout.Space(5);
+            
+            GUI.enabled = !string.IsNullOrEmpty(presetName.Trim());
+            if (GUILayout.Button("Save", GUILayout.Width(80)))
+            {
+                preset.presetName = presetName.Trim();
+                preset.description = description;
+                preset.dateCreated = System.DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                preset.createdBy = System.Environment.UserName;
+                
+                onSave?.Invoke(preset);
+                Close();
+            }
+            GUI.enabled = true;
+            
+            GUILayout.EndHorizontal();
+        }
 }

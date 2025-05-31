@@ -46,6 +46,7 @@ namespace Razluta.UnityIconGenerationFromModels
         public Color backgroundColor = Color.clear;
         
         [Header("Lighting Settings")]
+        public LightingPresetType currentLightingPreset = LightingPresetType.Custom;
         public Vector3 mainLightDirection = new Vector3(-30, 30, 0);
         public Color mainLightColor = Color.white;
         public float mainLightIntensity = 1f;
@@ -82,6 +83,7 @@ namespace Razluta.UnityIconGenerationFromModels
             EditorPrefs.SetString("UnityIconGen_FillLightDir", JsonUtility.ToJson(fillLightDirection));
             EditorPrefs.SetString("UnityIconGen_FillLightColor", JsonUtility.ToJson(fillLightColor));
             EditorPrefs.SetFloat("UnityIconGen_FillLightIntensity", fillLightIntensity);
+            EditorPrefs.SetInt("UnityIconGen_LightingPreset", (int)currentLightingPreset);
             
             // Save point lights
             EditorPrefs.SetInt("UnityIconGen_PointLightCount", pointLights.Count);
@@ -128,6 +130,7 @@ namespace Razluta.UnityIconGenerationFromModels
             if (EditorPrefs.HasKey("UnityIconGen_FillLightColor"))
                 JsonUtility.FromJsonOverwrite(EditorPrefs.GetString("UnityIconGen_FillLightColor"), fillLightColor);
             fillLightIntensity = EditorPrefs.GetFloat("UnityIconGen_FillLightIntensity", fillLightIntensity);
+            currentLightingPreset = (LightingPresetType)EditorPrefs.GetInt("UnityIconGen_LightingPreset", (int)LightingPresetType.Custom);
             
             // Load point lights
             int pointLightCount = EditorPrefs.GetInt("UnityIconGen_PointLightCount", 0);
@@ -166,6 +169,52 @@ namespace Razluta.UnityIconGenerationFromModels
             {
                 pointLights.RemoveAt(index);
                 SaveToPrefs();
+            }
+        }
+
+        public void ApplyLightingPreset(LightingPresetType presetType)
+        {
+            currentLightingPreset = presetType;
+            
+            if (presetType != LightingPresetType.Custom)
+            {
+                var preset = LightingPresets.GetPreset(presetType);
+                if (preset != null)
+                {
+                    mainLightDirection = preset.mainLightDirection;
+                    mainLightColor = preset.mainLightColor;
+                    mainLightIntensity = preset.mainLightIntensity;
+                    fillLightDirection = preset.fillLightDirection;
+                    fillLightColor = preset.fillLightColor;
+                    fillLightIntensity = preset.fillLightIntensity;
+                    
+                    // Replace point lights with preset point lights
+                    pointLights.Clear();
+                    foreach (var pointLight in preset.pointLights)
+                    {
+                        pointLights.Add(new PointLightSettings(
+                            pointLight.position,
+                            pointLight.color,
+                            pointLight.intensity,
+                            pointLight.range
+                        ) { enabled = pointLight.enabled });
+                    }
+                }
+            }
+            
+            SaveToPrefs();
+        }
+
+        public void OnLightingChanged()
+        {
+            // Check if current lighting still matches the selected preset
+            if (currentLightingPreset != LightingPresetType.Custom)
+            {
+                if (!LightingPresets.IsLightingMatchingPreset(this, currentLightingPreset))
+                {
+                    currentLightingPreset = LightingPresetType.Custom;
+                    SaveToPrefs();
+                }
             }
         }
     }

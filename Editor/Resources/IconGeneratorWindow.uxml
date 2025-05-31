@@ -34,6 +34,8 @@
             <!-- Lighting Settings -->
             <ui:Foldout text="Lighting Settings" value="false" name="lighting-foldout">
                 <ui:VisualElement style="margin-left: 15px; margin-top: 5px;">
+                    <ui:DropdownField label="Lighting Preset" name="lighting-preset-dropdown" style="margin-bottom: 10px;" />
+                    
                     <ui:Label text="Main Light" style="-unity-font-style: bold;" />
                     <uie:Vector3Field label="Direction" name="main-light-direction" />
                     <uie:ColorField label="Color" name="main-light-color" />
@@ -42,6 +44,15 @@
                     <ui:Label text="Fill Light" style="-unity-font-style: bold; margin-top: 10px;" />
                     <uie:Vector3Field label="Direction" name="fill-light-direction" />
                     <uie:ColorField label="Color" name="fill-light-color" />
+                    <ui:FloatField label="Intensity" name="fill-light-intensity" />
+                    
+                    <ui:Label text="Additional Point Lights" style="-unity-font-style: bold; margin-top: 10px;" />
+                    <ui:VisualElement name="point-lights-container" style="margin-top: 5px;">
+                        <!-- Point lights will be dynamically added here -->
+                    </ui:VisualElement>
+                    <ui:Button text="Add Point Light" name="add-point-light-button" style="height: 25px; margin-top: 5px;" />
+                </ui:VisualElement>
+            </ui:Foldout>:ColorField label="Color" name="fill-light-color" />
                     <ui:FloatField label="Intensity" name="fill-light-intensity" />
                     
                     <ui:Label text="Additional Point Lights" style="-unity-font-style: bold; margin-top: 10px;" />
@@ -65,6 +76,12 @@
             
             <!-- Preview & Configuration Section -->
             <ui:VisualElement style="margin-top: 20px;">
+                <ui:Label text="Configuration Presets" style="-unity-font-style: bold; margin-bottom: 5px;" />
+                <ui:VisualElement style="flex-direction: row; margin-bottom: 10px;">
+                    <ui:Button text="Save Configuration" name="save-config-button" style="height: 30px; flex-grow: 1; margin-right: 2px;" />
+                    <ui:Button text="Load Configuration" name="load-config-button" style="height: 30px; flex-grow: 1; margin-left: 2px;" />
+                </ui:VisualElement>
+                
                 <ui:Label text="Preview &amp; Configuration" style="-unity-font-style: bold; margin-bottom: 5px;" />
                 <ui:VisualElement style="flex-direction: row; margin-bottom: 5px;">
                     <ui:Button text="Setup Scene Mockup" name="setup-mockup-button" style="height: 30px; flex-grow: 1; margin-right: 2px;" />
