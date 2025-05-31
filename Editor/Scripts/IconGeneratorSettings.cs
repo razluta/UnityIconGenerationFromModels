@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace Razluta.UnityIconGenerationFromModels.Editor
@@ -34,7 +35,7 @@ namespace Razluta.UnityIconGenerationFromModels.Editor
         [Header("Lighting")]
         public LightingPreset lightingPreset = LightingPreset.Studio;
         
-        // Placeholder properties that might be referenced by existing code
+        // Core properties that other files reference
         public QualitySettings qualitySettings;
         public MultiFolderManager multiFolderManager;
         public LightingConfiguration lightingConfiguration;
@@ -93,7 +94,7 @@ namespace Razluta.UnityIconGenerationFromModels.Editor
         }
     }
     
-    // Minimal enum definitions
+    // Essential enum definitions
     [Serializable]
     public enum ExportFormat
     {
@@ -131,8 +132,294 @@ namespace Razluta.UnityIconGenerationFromModels.Editor
         MSAA16x = 16
     }
     
-    // Minimal placeholder classes
     [Serializable]
+    public class QualitySettings
+    {
+        public RenderQualityPreset renderQualityPreset = RenderQualityPreset.Standard;
+        public AntiAliasingLevel antiAliasingLevel = AntiAliasingLevel.MSAA8x;
+        public float renderScale = 1.0f;
+        
+        public static QualitySettings GetPresetConfiguration(RenderQualityPreset preset)
+        {
+            return new QualitySettings();
+        }
+        
+        public string GetPerformanceImpactDescription()
+        {
+            return "Standard quality";
+        }
+    }
+    
+    [Serializable]
+    public class MultiFolderManager
+    {
+        public List<InputFolderConfiguration> InputFolders = new List<InputFolderConfiguration>();
+        
+        public MultiFolderManager()
+        {
+            if (InputFolders.Count == 0)
+            {
+                InputFolders.Add(new InputFolderConfiguration());
+            }
+        }
+        
+        public void AddFolder() { }
+        public void RemoveFolder(int index) { }
+        public List<InputFolderConfiguration> GetValidFolders() { return new List<InputFolderConfiguration>(); }
+        public int GetTotalPrefabCount() { return 0; }
+        public string GetSummary() { return "No folders configured"; }
+        public List<string> ValidateConfiguration() { return new List<string>(); }
+    }
+    
+    [Serializable]
+    public class InputFolderConfiguration
+    {
+        public string folderPath = "";
+        public string prefabPrefix = "";
+        public bool isEnabled = true;
+        
+        public bool IsValid() { return false; }
+        public List<GameObject> GetPrefabs() { return new List<GameObject>(); }
+        public string GetDisplayName() { return "Empty Folder"; }
+    }
+    
+    [Serializable]
+    public class LightingConfiguration
+    {
+        public bool enableMainLight = true;
+        public Vector3 mainLightDirection = new Vector3(-30f, 50f, -30f);
+        public Color mainLightColor = Color.white;
+        public float mainLightIntensity = 1.2f;
+        
+        public bool enableFillLight = true;
+        public Vector3 fillLightDirection = new Vector3(30f, 10f, 30f);
+        public Color fillLightColor = new Color(0.8f, 0.9f, 1.0f);
+        public float fillLightIntensity = 0.4f;
+        
+        public List<PointLightConfiguration> pointLights = new List<PointLightConfiguration>();
+        public Color ambientColor = new Color(0.2f, 0.2f, 0.25f);
+        public float ambientIntensity = 0.3f;
+        
+        public void AddPointLight() { }
+        public void RemovePointLight(int index) { }
+        public int GetEnabledPointLightCount() { return 0; }
+    }
+    
+    [Serializable]
+    public class PointLightConfiguration
+    {
+        public bool enabled = true;
+        public Vector3 position = Vector3.zero;
+        public Color color = Color.white;
+        public float intensity = 1.0f;
+        public float range = 10.0f;
+    }
+} to satisfy dependencies
+    [Serializable]
+    public class QualitySettings
+    {
+        public RenderQualityPreset renderQualityPreset = RenderQualityPreset.Standard;
+        public AntiAliasingLevel antiAliasingLevel = AntiAliasingLevel.MSAA8x;
+        public float renderScale = 1.0f;
+        
+        public static QualitySettings GetPresetConfiguration(RenderQualityPreset preset)
+        {
+            return new QualitySettings();
+        }
+        
+        public string GetPerformanceImpactDescription()
+        {
+            return "Standard quality";
+        }
+    }
+    
+    [Serializable]
+    public class MultiFolderManager
+    {
+        public List<InputFolderConfiguration> InputFolders = new List<InputFolderConfiguration>();
+        
+        public MultiFolderManager()
+        {
+            if (InputFolders.Count == 0)
+            {
+                InputFolders.Add(new InputFolderConfiguration());
+            }
+        }
+        
+        public void AddFolder() 
+        { 
+            InputFolders.Add(new InputFolderConfiguration());
+        }
+        
+        public void RemoveFolder(int index) 
+        { 
+            if (index >= 0 && index < InputFolders.Count && InputFolders.Count > 1)
+            {
+                InputFolders.RemoveAt(index);
+            }
+        }
+        
+        public List<InputFolderConfiguration> GetValidFolders() 
+        { 
+            return InputFolders.Where(f => f.IsValid()).ToList();
+        }
+        
+        public int GetTotalPrefabCount() 
+        { 
+            return GetValidFolders().Sum(f => f.GetPrefabs().Count);
+        }
+        
+        public string GetSummary() 
+        { 
+            var count = GetTotalPrefabCount();
+            return count > 0 ? $"1 folder with {count} prefabs" : "No folders configured";
+        }
+        
+        public List<string> ValidateConfiguration() 
+        { 
+            return new List<string>();
+        }
+    }
+    
+    [Serializable]
+    public class InputFolderConfiguration
+    {
+        public string folderPath = "";
+        public string prefabPrefix = "";
+        public bool isEnabled = true;
+        public bool useCustomSettings = false;
+        public Vector3 customObjectScale = Vector3.one;
+        public Vector3 customObjectPosition = Vector3.zero;
+        public Vector3 customObjectRotation = Vector3.zero;
+        
+        public bool IsValid() 
+        { 
+            return !string.IsNullOrEmpty(folderPath) && 
+                   System.IO.Directory.Exists(folderPath) && 
+                   !string.IsNullOrEmpty(prefabPrefix) &&
+                   isEnabled;
+        }
+        
+        public List<GameObject> GetPrefabs() 
+        { 
+            var prefabs = new List<GameObject>();
+            
+            if (!IsValid()) return prefabs;
+            
+            try
+            {
+                var prefabFiles = System.IO.Directory.GetFiles(folderPath, "*.prefab", System.IO.SearchOption.TopDirectoryOnly)
+                    .Where(file => System.IO.Path.GetFileNameWithoutExtension(file).StartsWith(prefabPrefix))
+                    .ToArray();
+                    
+                foreach (var prefabFile in prefabFiles)
+                {
+                    var relativePath = prefabFile.Replace(Application.dataPath, "Assets");
+                    var prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(relativePath);
+                    
+                    if (prefab != null)
+                    {
+                        prefabs.Add(prefab);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Error loading prefabs from {folderPath}: {ex.Message}");
+            }
+            
+            return prefabs;
+        }
+        
+        public string GetDisplayName() 
+        { 
+            if (string.IsNullOrEmpty(folderPath))
+                return "Empty Folder";
+                
+            var folderName = System.IO.Path.GetFileName(folderPath);
+            var prefabCount = GetPrefabs().Count;
+            
+            return $"{folderName} ({prefabPrefix}*) - {prefabCount} prefabs";
+        }
+    }
+    
+    [Serializable]
+    public class LightingConfiguration
+    {
+        public bool enableMainLight = true;
+        public Vector3 mainLightDirection = new Vector3(-30f, 50f, -30f);
+        public Color mainLightColor = Color.white;
+        public float mainLightIntensity = 1.2f;
+        
+        public bool enableFillLight = true;
+        public Vector3 fillLightDirection = new Vector3(30f, 10f, 30f);
+        public Color fillLightColor = new Color(0.8f, 0.9f, 1.0f);
+        public float fillLightIntensity = 0.4f;
+        
+        public List<PointLightConfiguration> pointLights = new List<PointLightConfiguration>();
+        public Color ambientColor = new Color(0.2f, 0.2f, 0.25f);
+        public float ambientIntensity = 0.3f;
+        
+        public LightingConfiguration()
+        {
+            if (pointLights.Count == 0)
+            {
+                pointLights.Add(new PointLightConfiguration(
+                    new Vector3(2f, 2f, 2f), 
+                    Color.white, 
+                    0.8f, 
+                    5f
+                ));
+            }
+        }
+        
+        public void AddPointLight() 
+        { 
+            pointLights.Add(new PointLightConfiguration());
+        }
+        
+        public void RemovePointLight(int index) 
+        { 
+            if (index >= 0 && index < pointLights.Count)
+            {
+                pointLights.RemoveAt(index);
+            }
+        }
+        
+        public int GetEnabledPointLightCount() 
+        { 
+            return pointLights.Count(light => light.enabled);
+        }
+    }
+    
+    [Serializable]
+    public class PointLightConfiguration
+    {
+        public bool enabled = true;
+        public Vector3 position = Vector3.zero;
+        public Color color = Color.white;
+        public float intensity = 1.0f;
+        public float range = 10.0f;
+        
+        public PointLightConfiguration()
+        {
+            enabled = true;
+            position = Vector3.zero;
+            color = Color.white;
+            intensity = 1.0f;
+            range = 10.0f;
+        }
+        
+        public PointLightConfiguration(Vector3 pos, Color col, float inten, float ran)
+        {
+            enabled = true;
+            position = pos;
+            color = col;
+            intensity = inten;
+            range = ran;
+        }
+    }
+}[Serializable]
     public class QualitySettings
     {
         public RenderQualityPreset renderQualityPreset = RenderQualityPreset.Standard;
