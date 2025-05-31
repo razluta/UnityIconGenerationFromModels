@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.UIElements;
 using UnityEditor.UIElements;
 using System.IO;
+using System.Collections.Generic;
 
 namespace Razluta.UnityIconGenerationFromModels
 {
@@ -51,6 +52,7 @@ namespace Razluta.UnityIconGenerationFromModels
             BindUIElements();
             UpdatePrefabCount();
             RefreshPointLightsUI();
+            SetupLightingPresetDropdown();
         }
         
         private void CreateGUIFallback()
@@ -290,6 +292,7 @@ namespace Razluta.UnityIconGenerationFromModels
             container.Add(statusLabel);
             
             BindUIElementsFallback();
+            SetupLightingPresetDropdown();
         }
         
         private void BindUIElements()
@@ -534,15 +537,22 @@ namespace Razluta.UnityIconGenerationFromModels
         {
             var preset = ConfigurationPreset.FromSettings(settings);
             
-            // Show dialog to get preset name and description
-            var nameDialog = new ConfigurationNameDialog(preset);
-            nameDialog.ShowModal();
-            nameDialog.onSave += (configPreset) => {
-                if (ConfigurationPresetsManager.SaveConfiguration(configPreset))
+            // Simple input dialog using EditorUtility
+            var presetName = EditorUtility.SaveFilePanel(
+                "Save Configuration Preset",
+                "Assets",
+                "IconConfiguration",
+                "json"
+            );
+            
+            if (!string.IsNullOrEmpty(presetName))
+            {
+                preset.presetName = System.IO.Path.GetFileNameWithoutExtension(presetName);
+                if (ConfigurationPresetsManager.SaveConfiguration(preset, presetName))
                 {
                     statusLabel.text = "Configuration saved successfully!";
                 }
-            };
+            }
         }
         
         private void LoadConfiguration()
