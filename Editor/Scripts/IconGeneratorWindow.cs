@@ -1,22 +1,10 @@
-var message = $"Current Settings:\n\n" +
-                         $"Input Folder: {settings.inputFolderPath}\n" +
-                         $"Prefab Prefix: {settings.prefabNamePrefix}\n" +
-                         $"Output Folder: {settings.outputFolderPath}\n" +
-                         $"Icon Size: {settings.iconSize}x{settings.iconSize}\n" +
-                         $"Additional Sizes: {settings.additionalSizes.Count}\n" +
-                         $"Export Format: {settings.exportFormat}\n" +
-                         $"Camera Position: {settings.cameraPosition}\n" +
-                         $"Camera FOV: {settings.cameraFOV}°\n" +
-                         $"Auto Center: {settings.autoCenter}\n" +
-                         $"Auto Fit: {settings.autoFit}\n" +
-                         $"Point Lights: {settings.pointLights.Count}";            RefreshField<IntegerField, int>("icon-width", settings.iconWidth);
-            RefreshField<IntegerField, int>("icon-height", settings.iconHeight);using UnityEditor;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using UnityEditor;
+using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
-using UnityEditor.UIElements;
-using System.IO;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace Razluta.UnityIconGenerationFromModels
 {
@@ -54,11 +42,9 @@ namespace Razluta.UnityIconGenerationFromModels
             settings = new IconGeneratorSettings();
             settings.LoadFromPrefs();
             
-            // Load UXML
             var visualTree = Resources.Load<VisualTreeAsset>("IconGeneratorWindow");
             if (visualTree == null)
             {
-                // Fallback: create UXML programmatically if resource loading fails
                 CreateGUIFallback();
                 return;
             }
@@ -70,6 +56,9 @@ namespace Razluta.UnityIconGenerationFromModels
             UpdatePrefabCount();
             RefreshPointLightsUI();
             SetupLightingPresetDropdown();
+            SetupIconSizeDropdown();
+            SetupExportFormatDropdown();
+            RefreshAdditionalSizesUI();
         }
         
         private void CreateGUIFallback()
@@ -86,7 +75,6 @@ namespace Razluta.UnityIconGenerationFromModels
             container.style.paddingRight = 10;
             scrollView.Add(container);
             
-            // Title
             var title = new Label("Unity Icon Generation From Models");
             title.style.fontSize = 18;
             title.style.unityFontStyleAndWeight = FontStyle.Bold;
@@ -94,7 +82,6 @@ namespace Razluta.UnityIconGenerationFromModels
             title.style.unityTextAlign = TextAnchor.MiddleCenter;
             container.Add(title);
             
-            // Input Settings
             var inputFoldout = new Foldout { text = "Input Settings", value = true };
             container.Add(inputFoldout);
             
@@ -112,7 +99,6 @@ namespace Razluta.UnityIconGenerationFromModels
             prefabCountLabel.style.unityFontStyleAndWeight = FontStyle.Italic;
             inputFoldout.Add(prefabCountLabel);
             
-            // Output Settings
             var outputFoldout = new Foldout { text = "Output Settings", value = true };
             container.Add(outputFoldout);
             
@@ -144,7 +130,6 @@ namespace Razluta.UnityIconGenerationFromModels
             addSizeButton.style.marginTop = 5;
             outputFoldout.Add(addSizeButton);
             
-            // Camera Settings
             var cameraFoldout = new Foldout { text = "Camera Settings", value = false };
             container.Add(cameraFoldout);
             
@@ -164,11 +149,9 @@ namespace Razluta.UnityIconGenerationFromModels
             backgroundColor.name = "background-color";
             cameraFoldout.Add(backgroundColor);
             
-            // Lighting Settings
             var lightingFoldout = new Foldout { text = "Lighting Settings", value = false };
             container.Add(lightingFoldout);
             
-            // Lighting Preset Dropdown
             lightingPresetDropdown = new DropdownField("Lighting Preset");
             lightingPresetDropdown.name = "lighting-preset-dropdown";
             lightingPresetDropdown.style.marginBottom = 10;
@@ -207,7 +190,6 @@ namespace Razluta.UnityIconGenerationFromModels
             fillLightIntensity.name = "fill-light-intensity";
             lightingFoldout.Add(fillLightIntensity);
             
-            // Point Lights Section
             var pointLightsLabel = new Label("Additional Point Lights");
             pointLightsLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
             pointLightsLabel.style.marginTop = 10;
@@ -224,7 +206,6 @@ namespace Razluta.UnityIconGenerationFromModels
             addPointLightButton.style.marginTop = 5;
             lightingFoldout.Add(addPointLightButton);
             
-            // Advanced Settings
             var advancedFoldout = new Foldout { text = "Advanced Settings", value = false };
             container.Add(advancedFoldout);
             
@@ -248,7 +229,6 @@ namespace Razluta.UnityIconGenerationFromModels
             autoFit.name = "auto-fit";
             advancedFoldout.Add(autoFit);
             
-            // Configuration Presets
             var configPresetsLabel = new Label("Configuration Presets");
             configPresetsLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
             configPresetsLabel.style.marginTop = 20;
@@ -274,7 +254,6 @@ namespace Razluta.UnityIconGenerationFromModels
             loadConfigButton.style.marginLeft = 2;
             configButtonRow.Add(loadConfigButton);
             
-            // Preview & Configuration
             var previewConfigLabel = new Label("Preview & Configuration");
             previewConfigLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
             previewConfigLabel.style.marginBottom = 5;
@@ -305,7 +284,6 @@ namespace Razluta.UnityIconGenerationFromModels
             collectConfigButton.style.marginBottom = 10;
             container.Add(collectConfigButton);
             
-            // Action Buttons
             previewButton = new Button(() => PreviewSettings()) { text = "Preview Settings" };
             previewButton.name = "preview-button";
             previewButton.style.height = 30;
@@ -325,15 +303,11 @@ namespace Razluta.UnityIconGenerationFromModels
             statusLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
             container.Add(statusLabel);
             
-            RefreshPointLightsUI();
-            UpdatePrefabCount();
-            UpdateLightingPresetDropdown();
-            RefreshAdditionalSizesUI();
+            BindUIElementsFallback();
         }
         
         private void BindUIElements()
         {
-            // Get references to UI elements
             prefabCountLabel = root.Q<Label>("prefab-count");
             statusLabel = root.Q<Label>("status-label");
             generateButton = root.Q<Button>("generate-button");
@@ -351,12 +325,6 @@ namespace Razluta.UnityIconGenerationFromModels
             additionalSizesContainer = root.Q<VisualElement>("additional-sizes-container");
             addSizeButton = root.Q<Button>("add-size-button");
             
-            // Setup dropdowns
-            SetupLightingPresetDropdown();
-            SetupIconSizeDropdown();
-            SetupExportFormatDropdown();
-            
-            // Bind input settings
             var inputFolder = root.Q<ObjectField>("input-folder");
             if (inputFolder != null)
             {
@@ -369,9 +337,6 @@ namespace Razluta.UnityIconGenerationFromModels
                 });
             }
             
-            BindField<IntegerField, int>("icon-width", settings.iconWidth, val => settings.iconWidth = val);
-            BindField<IntegerField, int>("icon-height", settings.iconHeight, val => settings.iconHeight = val);
-            
             var prefabPrefix = root.Q<TextField>("prefab-prefix");
             if (prefabPrefix != null)
             {
@@ -383,7 +348,6 @@ namespace Razluta.UnityIconGenerationFromModels
                 });
             }
             
-            // Bind output settings
             var outputFolder = root.Q<ObjectField>("output-folder");
             if (outputFolder != null)
             {
@@ -395,16 +359,11 @@ namespace Razluta.UnityIconGenerationFromModels
                 });
             }
             
-            BindField<IntegerField, int>("icon-width", settings.iconWidth, val => settings.iconWidth = val);
-            BindField<IntegerField, int>("icon-height", settings.iconHeight, val => settings.iconHeight = val);
-            
-            // Bind camera settings
             BindField<Vector3Field, Vector3>("camera-position", settings.cameraPosition, val => settings.cameraPosition = val);
             BindField<Vector3Field, Vector3>("camera-rotation", settings.cameraRotation, val => settings.cameraRotation = val);
             BindField<FloatField, float>("camera-fov", settings.cameraFOV, val => settings.cameraFOV = val);
             BindField<ColorField, Color>("background-color", settings.backgroundColor, val => settings.backgroundColor = val);
             
-            // Bind lighting settings
             BindField<Vector3Field, Vector3>("main-light-direction", settings.mainLightDirection, val => {
                 settings.mainLightDirection = val;
                 settings.OnLightingChanged();
@@ -436,18 +395,16 @@ namespace Razluta.UnityIconGenerationFromModels
                 UpdateLightingPresetDropdown();
             });
             
-            // Bind advanced settings
             BindField<FloatField, float>("object-scale", settings.objectScale, val => settings.objectScale = val);
             BindField<Vector3Field, Vector3>("object-position", settings.objectPosition, val => settings.objectPosition = val);
             BindField<Vector3Field, Vector3>("object-rotation", settings.objectRotation, val => settings.objectRotation = val);
             BindField<Toggle, bool>("auto-center", settings.autoCenter, val => settings.autoCenter = val);
             BindField<Toggle, bool>("auto-fit", settings.autoFit, val => settings.autoFit = val);
             
-            // Bind buttons
             if (generateButton != null)
             {
                 generateButton.clicked += GenerateIcons;
-                generateButton.SetEnabled(true); // Ensure button starts enabled
+                generateButton.SetEnabled(true);
             }
             if (previewButton != null)
                 previewButton.clicked += PreviewSettings;
@@ -469,9 +426,6 @@ namespace Razluta.UnityIconGenerationFromModels
         
         private void BindUIElementsFallback()
         {
-            // Bind all fields using the helper method
-            BindField<IntegerField, int>("icon-width", settings.iconWidth, val => settings.iconWidth = val);
-            BindField<IntegerField, int>("icon-height", settings.iconHeight, val => settings.iconHeight = val);
             BindField<Vector3Field, Vector3>("camera-position", settings.cameraPosition, val => settings.cameraPosition = val);
             BindField<Vector3Field, Vector3>("camera-rotation", settings.cameraRotation, val => settings.cameraRotation = val);
             BindField<FloatField, float>("camera-fov", settings.cameraFOV, val => settings.cameraFOV = val);
@@ -564,6 +518,22 @@ namespace Razluta.UnityIconGenerationFromModels
             });
         }
         
+        private void UpdateLightingPresetDropdown()
+        {
+            if (lightingPresetDropdown == null) return;
+            lightingPresetDropdown.value = LightingPresets.GetPresetDisplayName(settings.currentLightingPreset);
+        }
+        
+        private void RefreshLightingUIFromSettings()
+        {
+            RefreshField<Vector3Field, Vector3>("main-light-direction", settings.mainLightDirection);
+            RefreshField<ColorField, Color>("main-light-color", settings.mainLightColor);
+            RefreshField<FloatField, float>("main-light-intensity", settings.mainLightIntensity);
+            RefreshField<Vector3Field, Vector3>("fill-light-direction", settings.fillLightDirection);
+            RefreshField<ColorField, Color>("fill-light-color", settings.fillLightColor);
+            RefreshField<FloatField, float>("fill-light-intensity", settings.fillLightIntensity);
+        }
+        
         private void SetupIconSizeDropdown()
         {
             if (iconSizeDropdown == null) return;
@@ -605,25 +575,7 @@ namespace Razluta.UnityIconGenerationFromModels
         
         private void AddSizeVariant()
         {
-            // Show dropdown to select additional size
             var availableSizes = IconGeneratorSettings.GetAvailableSizes();
-            var sizeNames = new List<string>();
-            
-            foreach (var size in availableSizes)
-            {
-                if (size != settings.iconSize && !settings.additionalSizes.Contains(size))
-                {
-                    sizeNames.Add(IconGeneratorSettings.GetSizeDisplayName(size));
-                }
-            }
-            
-            if (sizeNames.Count == 0)
-            {
-                EditorUtility.DisplayDialog("No More Sizes", "All available sizes are already selected.", "OK");
-                return;
-            }
-            
-            // Simple approach: add the first available size
             var firstAvailableSize = availableSizes.FirstOrDefault(size => 
                 size != settings.iconSize && !settings.additionalSizes.Contains(size));
             
@@ -632,6 +584,10 @@ namespace Razluta.UnityIconGenerationFromModels
                 settings.additionalSizes.Add(firstAvailableSize);
                 settings.SaveToPrefs();
                 RefreshAdditionalSizesUI();
+            }
+            else
+            {
+                EditorUtility.DisplayDialog("No More Sizes", "All available sizes are already selected.", "OK");
             }
         }
         
@@ -673,27 +629,10 @@ namespace Razluta.UnityIconGenerationFromModels
             additionalSizesContainer.Add(container);
         }
         
-        private void UpdateLightingPresetDropdown()
-        {
-            if (lightingPresetDropdown == null) return;
-            lightingPresetDropdown.value = LightingPresets.GetPresetDisplayName(settings.currentLightingPreset);
-        }
-        
-        private void RefreshLightingUIFromSettings()
-        {
-            RefreshField<Vector3Field, Vector3>("main-light-direction", settings.mainLightDirection);
-            RefreshField<ColorField, Color>("main-light-color", settings.mainLightColor);
-            RefreshField<FloatField, float>("main-light-intensity", settings.mainLightIntensity);
-            RefreshField<Vector3Field, Vector3>("fill-light-direction", settings.fillLightDirection);
-            RefreshField<ColorField, Color>("fill-light-color", settings.fillLightColor);
-            RefreshField<FloatField, float>("fill-light-intensity", settings.fillLightIntensity);
-        }
-        
         private void SaveConfiguration()
         {
             var preset = ConfigurationPreset.FromSettings(settings);
             
-            // Simple input dialog using EditorUtility
             var presetName = EditorUtility.SaveFilePanel(
                 "Save Configuration Preset",
                 "Assets",
@@ -738,10 +677,8 @@ namespace Razluta.UnityIconGenerationFromModels
         {
             if (pointLightsContainer == null) return;
             
-            // Clear existing UI
             pointLightsContainer.Clear();
             
-            // Add UI for each point light
             for (int i = 0; i < settings.pointLights.Count; i++)
             {
                 CreatePointLightUI(i);
@@ -752,7 +689,6 @@ namespace Razluta.UnityIconGenerationFromModels
         {
             var pointLight = settings.pointLights[index];
             
-            // Container for this point light
             var container = new VisualElement();
             container.style.marginBottom = 10;
             container.style.paddingLeft = 10;
@@ -765,7 +701,6 @@ namespace Razluta.UnityIconGenerationFromModels
             container.style.borderBottomLeftRadius = 4;
             container.style.borderBottomRightRadius = 4;
             
-            // Header with title and remove button
             var header = new VisualElement();
             header.style.flexDirection = FlexDirection.Row;
             header.style.justifyContent = Justify.SpaceBetween;
@@ -781,7 +716,6 @@ namespace Razluta.UnityIconGenerationFromModels
             removeButton.style.width = 60;
             header.Add(removeButton);
             
-            // Enabled toggle
             var enabledToggle = new Toggle("Enabled");
             enabledToggle.value = pointLight.enabled;
             enabledToggle.RegisterValueChangedCallback(evt => {
@@ -790,7 +724,6 @@ namespace Razluta.UnityIconGenerationFromModels
             });
             container.Add(enabledToggle);
             
-            // Position field
             var positionField = new Vector3Field("Position");
             positionField.value = pointLight.position;
             positionField.RegisterValueChangedCallback(evt => {
@@ -799,7 +732,6 @@ namespace Razluta.UnityIconGenerationFromModels
             });
             container.Add(positionField);
             
-            // Color field
             var colorField = new ColorField("Color");
             colorField.value = pointLight.color;
             colorField.RegisterValueChangedCallback(evt => {
@@ -808,7 +740,6 @@ namespace Razluta.UnityIconGenerationFromModels
             });
             container.Add(colorField);
             
-            // Intensity field
             var intensityField = new FloatField("Intensity");
             intensityField.value = pointLight.intensity;
             intensityField.RegisterValueChangedCallback(evt => {
@@ -817,7 +748,6 @@ namespace Razluta.UnityIconGenerationFromModels
             });
             container.Add(intensityField);
             
-            // Range field
             var rangeField = new FloatField("Range");
             rangeField.value = pointLight.range;
             rangeField.RegisterValueChangedCallback(evt => {
@@ -857,7 +787,6 @@ namespace Razluta.UnityIconGenerationFromModels
             var mockupTool = new SceneMockupTool(settings);
             if (mockupTool.CollectSceneConfiguration())
             {
-                // Refresh UI to show updated settings
                 RefreshAllUIFromSettings();
                 statusLabel.text = "Scene configuration collected and updated!";
             }
@@ -869,7 +798,6 @@ namespace Razluta.UnityIconGenerationFromModels
         
         private void RefreshAllUIFromSettings()
         {
-            // Refresh all UI elements with current settings values
             var inputFolder = root.Q<ObjectField>("input-folder");
             if (inputFolder != null)
                 inputFolder.value = AssetDatabase.LoadAssetAtPath<DefaultAsset>(settings.inputFolderPath);
@@ -882,8 +810,6 @@ namespace Razluta.UnityIconGenerationFromModels
             if (outputFolder != null)
                 outputFolder.value = AssetDatabase.LoadAssetAtPath<DefaultAsset>(settings.outputFolderPath);
             
-            RefreshField<IntegerField, int>("icon-width", settings.iconWidth);
-            RefreshField<IntegerField, int>("icon-height", settings.iconHeight);
             RefreshField<Vector3Field, Vector3>("camera-position", settings.cameraPosition);
             RefreshField<Vector3Field, Vector3>("camera-rotation", settings.cameraRotation);
             RefreshField<FloatField, float>("camera-fov", settings.cameraFOV);
@@ -903,6 +829,7 @@ namespace Razluta.UnityIconGenerationFromModels
             RefreshPointLightsUI();
             UpdatePrefabCount();
             UpdateLightingPresetDropdown();
+            RefreshAdditionalSizesUI();
         }
         
         private void RefreshField<TField, TValue>(string fieldName, TValue value)
@@ -927,7 +854,9 @@ namespace Razluta.UnityIconGenerationFromModels
                          $"Input Folder: {settings.inputFolderPath}\n" +
                          $"Prefab Prefix: {settings.prefabNamePrefix}\n" +
                          $"Output Folder: {settings.outputFolderPath}\n" +
-                         $"Icon Size: {settings.iconWidth}x{settings.iconHeight}\n" +
+                         $"Icon Size: {settings.iconSize}x{settings.iconSize}\n" +
+                         $"Additional Sizes: {settings.additionalSizes.Count}\n" +
+                         $"Export Format: {settings.exportFormat}\n" +
                          $"Camera Position: {settings.cameraPosition}\n" +
                          $"Camera FOV: {settings.cameraFOV}°\n" +
                          $"Auto Center: {settings.autoCenter}\n" +
