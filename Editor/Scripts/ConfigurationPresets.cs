@@ -13,7 +13,7 @@ namespace Razluta.UnityIconGenerationFromModels
         public string description = "";
         public string createdBy = "";
         public string dateCreated = "";
-        public string version = "1.0";
+        public string version = "1.1";
 
         [Header("Input Settings")]
         public string inputFolderPath = "Assets/Prefabs";

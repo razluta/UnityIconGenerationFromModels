@@ -8,6 +8,8 @@ A Unity Editor tool for generating transparent icons from 3D model prefabs with 
 
 ## Features
 
+- **Multiple Export Formats**: Generate icons in PNG or TGA format
+- **Size Variants**: Create multiple icon sizes simultaneously (16x16 to 4096x4096)
 - **Professional Lighting Presets**: Built-in presets (Studio, Dramatic, Soft, Product Shot, Cinematic, Technical)
 - **Complete Configuration Management**: Save and load entire tool configurations as reusable presets
 - **Batch Processing**: Generate icons for multiple prefabs at once
@@ -15,7 +17,7 @@ A Unity Editor tool for generating transparent icons from 3D model prefabs with 
 - **Real-time Preview**: Capture and preview icons before batch generation
 - **Advanced Lighting System**: Main light + fill light + unlimited point lights with individual controls
 - **Customizable Rendering**: Configure camera angle, lighting, and object positioning
-- **Transparent Backgrounds**: Generates PNG icons with transparency
+- **Transparent Backgrounds**: Generates PNG/TGA icons with transparency
 - **Auto-fit and Auto-center**: Automatically position and scale objects for optimal framing
 - **Scene Management**: Preserves your current scene and handles unsaved changes intelligently
 - **Unity 6 Compatible**: Built with Unity's UI Toolkit for modern editor integration
@@ -50,7 +52,12 @@ A Unity Editor tool for generating transparent icons from 3D model prefabs with 
    - Enter the prefix your prefabs start with (e.g., `Item_`)
    - Select or create an output folder for generated icons
 
-2. **Choose Lighting Style**:
+2. **Configure Output**:
+   - **Icon Size**: Choose main size from dropdown (16x16 to 4096x4096, default 512x512)
+   - **Export Format**: Select PNG or TGA format
+   - **Additional Sizes**: Optionally add more size variants for complete icon sets
+
+3. **Choose Lighting Style**:
    - **Quick Start**: Select a lighting preset from the dropdown (Studio, Dramatic, etc.)
    - **Custom Setup**: Manually configure main light, fill light, and point lights
    - **Professional Workflow**: Use scene mockup for visual adjustment
@@ -105,6 +112,13 @@ Choose from built-in lighting configurations optimized for different scenarios:
 - **Team Sharing**: Share configuration files with team members for consistent results
 - **Project-Specific Setups**: Create different configurations for different asset types
 
+#### Output Settings
+- **Icon Size**: Single dropdown with power-of-2 sizes from 16x16 to 4096x4096
+- **Export Format**: Choose between PNG (recommended) or TGA format
+- **Size Variants**: Generate multiple sizes simultaneously for complete icon sets
+   - Main size gets clean filename: `Sword_Icon.png`
+   - Additional sizes get size suffix: `Sword_Icon_256x256.png`
+- **Smart Workflow**: Add/remove additional sizes with simple UI controls
 #### Advanced Object Settings
 - **Object Scale**: Global scale multiplier for all objects
 - **Object Position/Rotation**: Override positioning for all objects
@@ -147,6 +161,19 @@ Reads your manual adjustments back into the tool:
 - Saves configuration for future use
 - Enables iterative refinement workflow
 
+### Multiple Export Formats
+Generate icons in your preferred format:
+- **PNG Format**: Lossless compression, excellent for UI and web use
+- **TGA Format**: Uncompressed, perfect for game engines and professional pipelines
+- **Transparency Support**: Both formats maintain alpha channel for transparent backgrounds
+
+### Size Variants System
+Create complete icon sets with multiple sizes:
+- **Power-of-2 Sizes**: From 16x16 to 4096x4096 pixels
+- **Professional Standards**: Default 512x512 with common variants (64x64, 128x128, 256x256, 1024x1024)
+- **Batch Generation**: All sizes generated simultaneously for each prefab
+- **Smart Naming**: Main size gets clean name, variants include size suffix
+- **Easy Management**: Add/remove additional sizes with simple UI controls
 ### Configuration Management
 Save and load complete tool configurations:
 - **Export Setup**: Save entire configuration as JSON file
@@ -222,6 +249,16 @@ com.razluta.unity-icon-generation-from-models/
 - Check that prefab name prefix is not empty
 - Look at Console for debug messages
 
+**Icons generated in wrong format**
+- Check Export Format dropdown in Output Settings
+- PNG recommended for most use cases
+- TGA for professional/engine pipelines
+
+**Missing size variants**
+- Verify additional sizes are added in Output Settings
+- Check output folder for files with size suffixes
+- Ensure sufficient disk space for multiple large files
+
 **Black icons instead of transparent**
 - Ensure background color alpha is set to 0
 - Check that your materials support transparency
@@ -253,14 +290,25 @@ com.razluta.unity-icon-generation-from-models/
 
 ### Workflow Tips
 
+**Lighting & Visual Setup:**
 - **Start with lighting presets** - Choose Studio, Dramatic, or Product Shot for instant professional results
 - **Use scene mockup extensively** to get visual feedback on your setup
-- **Save configurations for different asset types** - Create "WeaponIcons.json", "ArmorIcons.json", etc.
 - **Use capture preview extensively** to test different lighting configurations
 - **Iterate quickly** with the preset → mockup → preview → adjust cycle
+- **Combine presets with manual adjustments** - Start with a preset, then fine-tune manually
+
+**Output & Format Management:**
+- **Start with size planning** - Choose main size and variants based on your target platforms
+- **Use PNG for most projects** - Better compression and wider compatibility
+- **Consider TGA for game engines** - Uncompressed format preferred by many engines
+- **Generate complete icon sets** - Add common variants (64x64, 128x128, 256x256, 512x512, 1024x1024)
+- **Test file sizes** - Large variants (2048x2048+) create substantial files
+- **Organize output by format** - Consider separate folders for PNG vs TGA exports
+
+**Project Organization:**
+- **Save configurations for different asset types** - Create "WeaponIcons.json", "ArmorIcons.json", etc.
 - **Share configurations with your team** for consistent visual style across projects
 - **Test with one prefab first** before running full batch generation
-- **Combine presets with manual adjustments** - Start with a preset, then fine-tune manually
 
 ## Version History
 
