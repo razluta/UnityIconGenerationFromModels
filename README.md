@@ -1,6 +1,6 @@
 # Unity Icon Generation From Models
 
-> *The creation of this tool was performed in collaboration with [Claude 4](https://www.anthropic.com/claude).*
+> *The creation of this tool was performed with support from various AI tools.*
 
 A Unity Editor tool for generating transparent icons from 3D model prefabs with customizable rendering environments, featuring visual scene mockups, real-time preview capabilities, and professional lighting presets.
 
@@ -46,28 +46,28 @@ A Unity Editor tool for generating transparent icons from 3D model prefabs with 
 ### Quick Start Workflow
 
 1. **Basic Setup**:
-    - Select your prefabs folder (e.g., `Assets/Prefabs`)
-    - Enter the prefix your prefabs start with (e.g., `Item_`)
-    - Select or create an output folder for generated icons
+   - Select your prefabs folder (e.g., `Assets/Prefabs`)
+   - Enter the prefix your prefabs start with (e.g., `Item_`)
+   - Select or create an output folder for generated icons
 
 2. **Choose Lighting Style**:
-    - **Quick Start**: Select a lighting preset from the dropdown (Studio, Dramatic, etc.)
-    - **Custom Setup**: Manually configure main light, fill light, and point lights
-    - **Professional Workflow**: Use scene mockup for visual adjustment
+   - **Quick Start**: Select a lighting preset from the dropdown (Studio, Dramatic, etc.)
+   - **Custom Setup**: Manually configure main light, fill light, and point lights
+   - **Professional Workflow**: Use scene mockup for visual adjustment
 
 3. **Visual Configuration** (Optional but Recommended):
-    - Click **"Setup Scene Mockup"** to create a visual preview in your scene
-    - Manually adjust camera position, lighting, and settings using Unity's normal tools
-    - Click **"Capture Preview"** to see exactly what your icon will look like
-    - Click **"Collect Scene Configuration"** to save your adjustments back to the tool
+   - Click **"Setup Scene Mockup"** to create a visual preview in your scene
+   - Manually adjust camera position, lighting, and settings using Unity's normal tools
+   - Click **"Capture Preview"** to see exactly what your icon will look like
+   - Click **"Collect Scene Configuration"** to save your adjustments back to the tool
 
 4. **Save Your Setup** (Optional):
-    - Click **"Save Configuration"** to save your entire setup as a reusable preset
-    - Perfect for different object types (weapons, armor, consumables, etc.)
+   - Click **"Save Configuration"** to save your entire setup as a reusable preset
+   - Perfect for different object types (weapons, armor, consumables, etc.)
 
 5. **Generate Icons**:
-    - Click **"Generate Icons"** to batch process all matching prefabs
-    - Your original scene will be preserved and restored automatically
+   - Click **"Generate Icons"** to batch process all matching prefabs
+   - Your original scene will be preserved and restored automatically
 
 ### Advanced Configuration
 
@@ -94,9 +94,9 @@ Choose from built-in lighting configurations optimized for different scenarios:
 - **Main Light**: Primary directional light (key light)
 - **Fill Light**: Secondary directional light to reduce harsh shadows
 - **Point Lights**: Add unlimited point lights for accent lighting, rim lighting, etc.
-    - Each point light has position, color, intensity, range, and enabled settings
-    - Use "Add Point Light" button to create new lights
-    - Individual remove buttons for each light
+   - Each point light has position, color, intensity, range, and enabled settings
+   - Use "Add Point Light" button to create new lights
+   - Individual remove buttons for each light
 - **Smart Preset Detection**: Automatically switches to "Custom" when you manually adjust any lighting
 
 #### Complete Configuration Management
@@ -174,7 +174,7 @@ com.razluta.unity-icon-generation-from-models/
 │   │   └── IconGeneratorSettings.cs                 # Settings management
 │   └── Resources/
 │       └── IconGeneratorWindow.uxml                 # UI layout definition
-└── Samples~/
+└── Samples/
     ├── ExamplePrefabs/                              # Sample prefabs for testing
     └── SampleUi.png                                 # Tool interface screenshot
 ```
