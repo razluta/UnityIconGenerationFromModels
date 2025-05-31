@@ -28,6 +28,8 @@ namespace Razluta.UnityIconGenerationFromModels
         private DropdownField exportFormatDropdown;
         private VisualElement additionalSizesContainer;
         private Button addSizeButton;
+        private Button titleButton;
+        private Button versionButton;
         
         [MenuItem("Tools/Razluta/Unity Icon Generation From Models")]
         public static void ShowWindow()
@@ -75,12 +77,33 @@ namespace Razluta.UnityIconGenerationFromModels
             container.style.paddingRight = 10;
             scrollView.Add(container);
             
-            var title = new Label("Unity Icon Generation From Models");
-            title.style.fontSize = 18;
-            title.style.unityFontStyleAndWeight = FontStyle.Bold;
-            title.style.marginBottom = 10;
-            title.style.unityTextAlign = TextAnchor.MiddleCenter;
-            container.Add(title);
+            // Title button (hyperlinked)
+            titleButton = new Button(() => OpenGitHubPage()) { text = "Unity Icon Generation From Models" };
+            titleButton.name = "title-button";
+            titleButton.style.fontSize = 18;
+            titleButton.style.unityFontStyleAndWeight = FontStyle.Bold;
+            titleButton.style.marginBottom = 5;
+            titleButton.style.unityTextAlign = TextAnchor.MiddleCenter;
+            titleButton.style.backgroundColor = new Color(0, 0, 0, 0);
+            titleButton.style.borderTopWidth = 0;
+            titleButton.style.borderBottomWidth = 0;
+            titleButton.style.borderLeftWidth = 0;
+            titleButton.style.borderRightWidth = 0;
+            container.Add(titleButton);
+            
+            // Version button (hyperlinked)
+            versionButton = new Button(() => OpenChangelogPage()) { text = "v1.1.0" };
+            versionButton.name = "version-button";
+            versionButton.style.fontSize = 12;
+            versionButton.style.marginBottom = 10;
+            versionButton.style.unityTextAlign = TextAnchor.MiddleCenter;
+            versionButton.style.backgroundColor = new Color(0, 0, 0, 0);
+            versionButton.style.borderTopWidth = 0;
+            versionButton.style.borderBottomWidth = 0;
+            versionButton.style.borderLeftWidth = 0;
+            versionButton.style.borderRightWidth = 0;
+            versionButton.style.color = new Color(0.6f, 0.6f, 0.6f, 1f);
+            container.Add(versionButton);
             
             var inputFoldout = new Foldout { text = "Input Settings", value = true };
             container.Add(inputFoldout);
@@ -324,6 +347,8 @@ namespace Razluta.UnityIconGenerationFromModels
             exportFormatDropdown = root.Q<DropdownField>("export-format-dropdown");
             additionalSizesContainer = root.Q<VisualElement>("additional-sizes-container");
             addSizeButton = root.Q<Button>("add-size-button");
+            titleButton = root.Q<Button>("title-button");
+            versionButton = root.Q<Button>("version-button");
             
             var inputFolder = root.Q<ObjectField>("input-folder");
             if (inputFolder != null)
@@ -422,6 +447,10 @@ namespace Razluta.UnityIconGenerationFromModels
                 loadConfigButton.clicked += LoadConfiguration;
             if (addSizeButton != null)
                 addSizeButton.clicked += AddSizeVariant;
+            if (titleButton != null)
+                titleButton.clicked += OpenGitHubPage;
+            if (versionButton != null)
+                versionButton.clicked += OpenChangelogPage;
         }
         
         private void BindUIElementsFallback()
@@ -455,6 +484,16 @@ namespace Razluta.UnityIconGenerationFromModels
                     settings.SaveToPrefs();
                 });
             }
+        }
+        
+        private void OpenGitHubPage()
+        {
+            Application.OpenURL("https://github.com/razluta/UnityIconGenerationFromModels");
+        }
+        
+        private void OpenChangelogPage()
+        {
+            Application.OpenURL("https://github.com/razluta/UnityIconGenerationFromModels/blob/main/CHANGELOG.md");
         }
         
         private void UpdatePrefabCount()

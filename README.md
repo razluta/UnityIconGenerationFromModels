@@ -22,6 +22,7 @@ A Unity Editor tool for generating transparent icons from 3D model prefabs with 
 - **Scene Management**: Preserves your current scene and handles unsaved changes intelligently
 - **Unity 6 Compatible**: Built with Unity's UI Toolkit for modern editor integration
 - **Persistent Settings**: Remembers your configuration between sessions
+- **Quick Access Links**: Title and version are hyperlinked to GitHub repository and changelog
 
 ## Installation
 
@@ -48,33 +49,33 @@ A Unity Editor tool for generating transparent icons from 3D model prefabs with 
 ### Quick Start Workflow
 
 1. **Basic Setup**:
-   - Select your prefabs folder (e.g., `Assets/Prefabs`)
-   - Enter the prefix your prefabs start with (e.g., `Item_`)
-   - Select or create an output folder for generated icons
+    - Select your prefabs folder (e.g., `Assets/Prefabs`)
+    - Enter the prefix your prefabs start with (e.g., `Item_`)
+    - Select or create an output folder for generated icons
 
 2. **Configure Output**:
-   - **Icon Size**: Choose main size from dropdown (16x16 to 4096x4096, default 512x512)
-   - **Export Format**: Select PNG or TGA format
-   - **Additional Sizes**: Optionally add more size variants for complete icon sets
+    - **Icon Size**: Choose main size from dropdown (16x16 to 4096x4096, default 512x512)
+    - **Export Format**: Select PNG or TGA format
+    - **Additional Sizes**: Optionally add more size variants for complete icon sets
 
 3. **Choose Lighting Style**:
-   - **Quick Start**: Select a lighting preset from the dropdown (Studio, Dramatic, etc.)
-   - **Custom Setup**: Manually configure main light, fill light, and point lights
-   - **Professional Workflow**: Use scene mockup for visual adjustment
+    - **Quick Start**: Select a lighting preset from the dropdown (Studio, Dramatic, etc.)
+    - **Custom Setup**: Manually configure main light, fill light, and point lights
+    - **Professional Workflow**: Use scene mockup for visual adjustment
 
 3. **Visual Configuration** (Optional but Recommended):
-   - Click **"Setup Scene Mockup"** to create a visual preview in your scene
-   - Manually adjust camera position, lighting, and settings using Unity's normal tools
-   - Click **"Capture Preview"** to see exactly what your icon will look like
-   - Click **"Collect Scene Configuration"** to save your adjustments back to the tool
+    - Click **"Setup Scene Mockup"** to create a visual preview in your scene
+    - Manually adjust camera position, lighting, and settings using Unity's normal tools
+    - Click **"Capture Preview"** to see exactly what your icon will look like
+    - Click **"Collect Scene Configuration"** to save your adjustments back to the tool
 
 4. **Save Your Setup** (Optional):
-   - Click **"Save Configuration"** to save your entire setup as a reusable preset
-   - Perfect for different object types (weapons, armor, consumables, etc.)
+    - Click **"Save Configuration"** to save your entire setup as a reusable preset
+    - Perfect for different object types (weapons, armor, consumables, etc.)
 
 5. **Generate Icons**:
-   - Click **"Generate Icons"** to batch process all matching prefabs
-   - Your original scene will be preserved and restored automatically
+    - Click **"Generate Icons"** to batch process all matching prefabs
+    - Your original scene will be preserved and restored automatically
 
 ### Advanced Configuration
 
@@ -101,9 +102,9 @@ Choose from built-in lighting configurations optimized for different scenarios:
 - **Main Light**: Primary directional light (key light)
 - **Fill Light**: Secondary directional light to reduce harsh shadows
 - **Point Lights**: Add unlimited point lights for accent lighting, rim lighting, etc.
-   - Each point light has position, color, intensity, range, and enabled settings
-   - Use "Add Point Light" button to create new lights
-   - Individual remove buttons for each light
+    - Each point light has position, color, intensity, range, and enabled settings
+    - Use "Add Point Light" button to create new lights
+    - Individual remove buttons for each light
 - **Smart Preset Detection**: Automatically switches to "Custom" when you manually adjust any lighting
 
 #### Complete Configuration Management
@@ -116,8 +117,8 @@ Choose from built-in lighting configurations optimized for different scenarios:
 - **Icon Size**: Single dropdown with power-of-2 sizes from 16x16 to 4096x4096
 - **Export Format**: Choose between PNG (recommended) or TGA format
 - **Size Variants**: Generate multiple sizes simultaneously for complete icon sets
-   - Main size gets clean filename: `Sword_Icon.png`
-   - Additional sizes get size suffix: `Sword_Icon_256x256.png`
+    - Main size gets clean filename: `Sword_Icon.png`
+    - Additional sizes get size suffix: `Sword_Icon_256x256.png`
 - **Smart Workflow**: Add/remove additional sizes with simple UI controls
 #### Advanced Object Settings
 - **Object Scale**: Global scale multiplier for all objects

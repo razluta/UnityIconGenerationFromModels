@@ -1,7 +1,8 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="True">
     <ui:ScrollView>
         <ui:VisualElement style="padding: 10px;">
-            <ui:Label text="Unity Icon Generation From Models" style="font-size: 18px; -unity-font-style: bold; margin-bottom: 10px; -unity-text-align: middle-center;" />
+            <ui:Button text="Unity Icon Generation From Models" name="title-button" style="font-size: 18px; -unity-font-style: bold; margin-bottom: 5px; -unity-text-align: middle-center; background-color: rgba(0, 0, 0, 0); border-width: 0;" />
+            <ui:Button text="v1.1.0" name="version-button" style="font-size: 12px; margin-bottom: 10px; -unity-text-align: middle-center; background-color: rgba(0, 0, 0, 0); border-width: 0; color: rgb(150, 150, 150);" />
             
             <!-- Input Settings -->
             <ui:Foldout text="Input Settings" value="true" name="input-foldout">
