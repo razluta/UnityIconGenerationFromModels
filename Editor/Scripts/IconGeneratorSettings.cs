@@ -1,302 +1,189 @@
-using System;
-using System.Collections.Generic;
 using UnityEngine;
+using UnityEditor;
+using System.Collections.Generic;
 
-namespace Razluta.UnityIconGenerationFromModels.Editor
+namespace Razluta.UnityIconGenerationFromModels
 {
-    /// <summary>
-    /// Complete settings configuration for Unity Icon Generation Tool v1.2.0
-    /// Includes all new quality, multi-folder, and reporting features
-    /// </summary>
-    [Serializable]
+    public enum ExportFormat
+    {
+        PNG = 0,
+        TGA = 1
+    }
+
+    [System.Serializable]
+    public class PointLightSettings
+    {
+        public Vector3 position = new Vector3(2f, 2f, 2f);
+        public Color color = Color.white;
+        public float intensity = 1f;
+        public float range = 10f;
+        public bool enabled = true;
+        
+        public PointLightSettings()
+        {
+        }
+        
+        public PointLightSettings(Vector3 pos, Color col, float intens, float r)
+        {
+            position = pos;
+            color = col;
+            intensity = intens;
+            range = r;
+            enabled = true;
+        }
+    }
+
+    [System.Serializable]
     public class IconGeneratorSettings
     {
-        [Header("Version Information")]
-        public string version = "1.2.0";
+        [Header("Input Settings")]
+        public string inputFolderPath = "Assets/Prefabs";
+        public string prefabNamePrefix = "Item_";
         
-        [Header("Quality Settings")]
-        public QualitySettings qualitySettings = new QualitySettings();
-        
-        [Header("Multi-Folder Input")]
-        public MultiFolderManager multiFolderManager = new MultiFolderManager();
-        
-        [Header("Output Configuration")]
-        public string outputFolderPath = "";
-        public ExportFormat exportFormat = ExportFormat.PNG;
-        public int mainIconSize = 512;
+        [Header("Output Settings")]
+        public string outputFolderPath = "Assets/GeneratedIcons";
+        public int iconSize = 512;
         public List<int> additionalSizes = new List<int>();
+        public ExportFormat exportFormat = ExportFormat.PNG;
         
         [Header("Camera Settings")]
-        public Vector3 cameraPosition = new Vector3(1.5f, 1.5f, 1.5f);
-        public Vector3 cameraRotation = new Vector3(15f, -30f, 0f);
-        public float fieldOfView = 30f;
-        public Color backgroundColor = new Color(0f, 0f, 0f, 0f); // Transparent
+        public Vector3 cameraPosition = new Vector3(0, 0, -3);
+        public Vector3 cameraRotation = new Vector3(0, 0, 0);
+        public float cameraFOV = 60f;
+        public Color backgroundColor = Color.clear;
         
-        [Header("Object Transform")]
-        public Vector3 objectScale = Vector3.one;
+        [Header("Lighting Settings")]
+        public LightingPresetType currentLightingPreset = LightingPresetType.Custom;
+        public Vector3 mainLightDirection = new Vector3(-30, 30, 0);
+        public Color mainLightColor = Color.white;
+        public float mainLightIntensity = 1f;
+        public Vector3 fillLightDirection = new Vector3(30, -30, 180);
+        public Color fillLightColor = Color.white;
+        public float fillLightIntensity = 0.5f;
+        
+        [Header("Additional Point Lights")]
+        public List<PointLightSettings> pointLights = new List<PointLightSettings>();
+        
+        [Header("Advanced Settings")]
+        public float objectScale = 1f;
         public Vector3 objectPosition = Vector3.zero;
         public Vector3 objectRotation = Vector3.zero;
         public bool autoCenter = true;
         public bool autoFit = true;
         
-        [Header("Lighting Configuration")]
-        public LightingPreset lightingPreset = LightingPreset.Studio;
-        public LightingConfiguration lightingConfiguration = new LightingConfiguration();
-        
-        [Header("Advanced Options")]
-        public bool enableReports = true;
-        public bool showDetailedProgress = true;
-        public bool pauseOnError = false;
-        public bool exportConfigurationWithIcons = false;
-        
-        [Header("Performance")]
-        public bool useAsyncProcessing = true;
-        public int maxConcurrentOperations = 1;
-        public bool enableMemoryOptimization = true;
-        
-        public IconGeneratorSettings()
+        public void SaveToPrefs()
         {
-            // Initialize with sensible defaults
-            version = "1.2.0";
-            qualitySettings = new QualitySettings();
-            multiFolderManager = new MultiFolderManager();
-            lightingConfiguration = new LightingConfiguration();
+            EditorPrefs.SetString("UnityIconGen_InputFolder", inputFolderPath);
+            EditorPrefs.SetString("UnityIconGen_PrefabPrefix", prefabNamePrefix);
+            EditorPrefs.SetString("UnityIconGen_OutputFolder", outputFolderPath);
+            EditorPrefs.SetInt("UnityIconGen_IconSize", iconSize);
+            EditorPrefs.SetInt("UnityIconGen_ExportFormat", (int)exportFormat);
             
-            // Default additional sizes
-            additionalSizes = new List<int> { 64, 128, 256, 1024 };
-        }
-        
-        /// <summary>
-        /// Validate current settings and return any issues
-        /// </summary>
-        public List<string> ValidateSettings()
-        {
-            var issues = new List<string>();
-            
-            // Validate output folder
-            if (string.IsNullOrEmpty(outputFolderPath))
+            // Save additional sizes
+            EditorPrefs.SetInt("UnityIconGen_AdditionalSizeCount", additionalSizes.Count);
+            for (int i = 0; i < additionalSizes.Count; i++)
             {
-                issues.Add("Output folder path is required");
-            }
-            else if (!System.IO.Directory.Exists(outputFolderPath))
-            {
-                issues.Add($"Output folder does not exist: {outputFolderPath}");
+                EditorPrefs.SetInt($"UnityIconGen_AdditionalSize_{i}", additionalSizes[i]);
             }
             
-            // Validate multi-folder configuration
-            var folderIssues = multiFolderManager.ValidateConfiguration();
-            issues.AddRange(folderIssues);
+            EditorPrefs.SetString("UnityIconGen_CameraPos", JsonUtility.ToJson(cameraPosition));
+            EditorPrefs.SetString("UnityIconGen_CameraRot", JsonUtility.ToJson(cameraRotation));
+            EditorPrefs.SetFloat("UnityIconGen_CameraFOV", cameraFOV);
+            EditorPrefs.SetString("UnityIconGen_BackgroundColor", JsonUtility.ToJson(backgroundColor));
             
-            // Validate icon sizes
-            if (mainIconSize <= 0)
+            EditorPrefs.SetString("UnityIconGen_MainLightDir", JsonUtility.ToJson(mainLightDirection));
+            EditorPrefs.SetString("UnityIconGen_MainLightColor", JsonUtility.ToJson(mainLightColor));
+            EditorPrefs.SetFloat("UnityIconGen_MainLightIntensity", mainLightIntensity);
+            EditorPrefs.SetString("UnityIconGen_FillLightDir", JsonUtility.ToJson(fillLightDirection));
+            EditorPrefs.SetString("UnityIconGen_FillLightColor", JsonUtility.ToJson(fillLightColor));
+            EditorPrefs.SetFloat("UnityIconGen_FillLightIntensity", fillLightIntensity);
+            EditorPrefs.SetInt("UnityIconGen_LightingPreset", (int)currentLightingPreset);
+            
+            // Save point lights
+            EditorPrefs.SetInt("UnityIconGen_PointLightCount", pointLights.Count);
+            for (int i = 0; i < pointLights.Count; i++)
             {
-                issues.Add("Main icon size must be greater than 0");
+                var light = pointLights[i];
+                EditorPrefs.SetString($"UnityIconGen_PointLight_{i}_Position", JsonUtility.ToJson(light.position));
+                EditorPrefs.SetString($"UnityIconGen_PointLight_{i}_Color", JsonUtility.ToJson(light.color));
+                EditorPrefs.SetFloat($"UnityIconGen_PointLight_{i}_Intensity", light.intensity);
+                EditorPrefs.SetFloat($"UnityIconGen_PointLight_{i}_Range", light.range);
+                EditorPrefs.SetBool($"UnityIconGen_PointLight_{i}_Enabled", light.enabled);
             }
             
-            foreach (var size in additionalSizes)
+            EditorPrefs.SetFloat("UnityIconGen_ObjectScale", objectScale);
+            EditorPrefs.SetString("UnityIconGen_ObjectPos", JsonUtility.ToJson(objectPosition));
+            EditorPrefs.SetString("UnityIconGen_ObjectRot", JsonUtility.ToJson(objectRotation));
+            EditorPrefs.SetBool("UnityIconGen_AutoCenter", autoCenter);
+            EditorPrefs.SetBool("UnityIconGen_AutoFit", autoFit);
+        }
+        
+        public void LoadFromPrefs()
+        {
+            inputFolderPath = EditorPrefs.GetString("UnityIconGen_InputFolder", inputFolderPath);
+            prefabNamePrefix = EditorPrefs.GetString("UnityIconGen_PrefabPrefix", prefabNamePrefix);
+            outputFolderPath = EditorPrefs.GetString("UnityIconGen_OutputFolder", outputFolderPath);
+            iconSize = EditorPrefs.GetInt("UnityIconGen_IconSize", iconSize);
+            exportFormat = (ExportFormat)EditorPrefs.GetInt("UnityIconGen_ExportFormat", (int)ExportFormat.PNG);
+            
+            // Load additional sizes
+            int additionalSizeCount = EditorPrefs.GetInt("UnityIconGen_AdditionalSizeCount", 0);
+            additionalSizes.Clear();
+            for (int i = 0; i < additionalSizeCount; i++)
             {
-                if (size <= 0)
-                {
-                    issues.Add($"Invalid additional size: {size}");
-                }
+                int size = EditorPrefs.GetInt($"UnityIconGen_AdditionalSize_{i}", 256);
+                additionalSizes.Add(size);
             }
             
-            // Validate camera settings
-            if (fieldOfView <= 0 || fieldOfView >= 180)
+            if (EditorPrefs.HasKey("UnityIconGen_CameraPos"))
+                JsonUtility.FromJsonOverwrite(EditorPrefs.GetString("UnityIconGen_CameraPos"), cameraPosition);
+            if (EditorPrefs.HasKey("UnityIconGen_CameraRot"))
+                JsonUtility.FromJsonOverwrite(EditorPrefs.GetString("UnityIconGen_CameraRot"), cameraRotation);
+            cameraFOV = EditorPrefs.GetFloat("UnityIconGen_CameraFOV", cameraFOV);
+            if (EditorPrefs.HasKey("UnityIconGen_BackgroundColor"))
+                JsonUtility.FromJsonOverwrite(EditorPrefs.GetString("UnityIconGen_BackgroundColor"), backgroundColor);
+            
+            if (EditorPrefs.HasKey("UnityIconGen_MainLightDir"))
+                JsonUtility.FromJsonOverwrite(EditorPrefs.GetString("UnityIconGen_MainLightDir"), mainLightDirection);
+            if (EditorPrefs.HasKey("UnityIconGen_MainLightColor"))
+                JsonUtility.FromJsonOverwrite(EditorPrefs.GetString("UnityIconGen_MainLightColor"), mainLightColor);
+            mainLightIntensity = EditorPrefs.GetFloat("UnityIconGen_MainLightIntensity", mainLightIntensity);
+            if (EditorPrefs.HasKey("UnityIconGen_FillLightDir"))
+                JsonUtility.FromJsonOverwrite(EditorPrefs.GetString("UnityIconGen_FillLightDir"), fillLightDirection);
+            if (EditorPrefs.HasKey("UnityIconGen_FillLightColor"))
+                JsonUtility.FromJsonOverwrite(EditorPrefs.GetString("UnityIconGen_FillLightColor"), fillLightColor);
+            fillLightIntensity = EditorPrefs.GetFloat("UnityIconGen_FillLightIntensity", fillLightIntensity);
+            currentLightingPreset = (LightingPresetType)EditorPrefs.GetInt("UnityIconGen_LightingPreset", (int)LightingPresetType.Custom);
+            
+            // Load point lights
+            int pointLightCount = EditorPrefs.GetInt("UnityIconGen_PointLightCount", 0);
+            pointLights.Clear();
+            for (int i = 0; i < pointLightCount; i++)
             {
-                issues.Add("Field of view must be between 0 and 180 degrees");
+                var light = new PointLightSettings();
+                if (EditorPrefs.HasKey($"UnityIconGen_PointLight_{i}_Position"))
+                    JsonUtility.FromJsonOverwrite(EditorPrefs.GetString($"UnityIconGen_PointLight_{i}_Position"), light.position);
+                if (EditorPrefs.HasKey($"UnityIconGen_PointLight_{i}_Color"))
+                    JsonUtility.FromJsonOverwrite(EditorPrefs.GetString($"UnityIconGen_PointLight_{i}_Color"), light.color);
+                light.intensity = EditorPrefs.GetFloat($"UnityIconGen_PointLight_{i}_Intensity", 1f);
+                light.range = EditorPrefs.GetFloat($"UnityIconGen_PointLight_{i}_Range", 10f);
+                light.enabled = EditorPrefs.GetBool($"UnityIconGen_PointLight_{i}_Enabled", true);
+                pointLights.Add(light);
             }
             
-            return issues;
-        }
-        
-        /// <summary>
-        /// Get all icon sizes (main + additional)
-        /// </summary>
-        public List<int> GetAllSizes()
-        {
-            var allSizes = new List<int> { mainIconSize };
-            allSizes.AddRange(additionalSizes);
-            return allSizes;
-        }
-        
-        /// <summary>
-        /// Get total number of icons that will be generated
-        /// </summary>
-        public int GetTotalIconCount()
-        {
-            var prefabCount = multiFolderManager.GetTotalPrefabCount();
-            var sizeCount = GetAllSizes().Count;
-            return prefabCount * sizeCount;
-        }
-        
-        /// <summary>
-        /// Get estimated processing time based on current settings
-        /// </summary>
-        public float GetEstimatedProcessingTime()
-        {
-            var prefabCount = multiFolderManager.GetTotalPrefabCount();
-            var sizeCount = GetAllSizes().Count;
-            var totalOperations = prefabCount * sizeCount;
-            
-            // Base time per operation (seconds)
-            float baseTimePerOperation = qualitySettings.renderQualityPreset switch
-            {
-                RenderQualityPreset.Draft => 0.5f,
-                RenderQualityPreset.Standard => 1.5f,
-                RenderQualityPreset.HighQuality => 4.0f,
-                _ => 1.5f
-            };
-            
-            // Adjust for anti-aliasing
-            float aaMultiplier = qualitySettings.antiAliasingLevel switch
-            {
-                AntiAliasingLevel.None => 0.8f,
-                AntiAliasingLevel.MSAA2x => 1.0f,
-                AntiAliasingLevel.MSAA4x => 1.2f,
-                AntiAliasingLevel.MSAA8x => 1.5f,
-                AntiAliasingLevel.MSAA16x => 2.0f,
-                _ => 1.0f
-            };
-            
-            // Adjust for render scale
-            float scaleMultiplier = Mathf.Pow(qualitySettings.renderScale, 1.5f);
-            
-            return totalOperations * baseTimePerOperation * aaMultiplier * scaleMultiplier;
-        }
-        
-        /// <summary>
-        /// Apply quality preset and update settings accordingly
-        /// </summary>
-        public void ApplyQualityPreset(RenderQualityPreset preset)
-        {
-            qualitySettings = QualitySettings.GetPresetConfiguration(preset);
-        }
-        
-        /// <summary>
-        /// Clone current settings
-        /// </summary>
-        public IconGeneratorSettings Clone()
-        {
-            var json = JsonUtility.ToJson(this);
-            return JsonUtility.FromJson<IconGeneratorSettings>(json);
-        }
-        
-        /// <summary>
-        /// Get summary of current configuration
-        /// </summary>
-        public string GetConfigurationSummary()
-        {
-            var summary = new System.Text.StringBuilder();
-            
-            summary.AppendLine($"Quality: {qualitySettings.renderQualityPreset} ({qualitySettings.antiAliasingLevel})");
-            summary.AppendLine($"Input: {multiFolderManager.GetSummary()}");
-            summary.AppendLine($"Output: {exportFormat}, {GetAllSizes().Count} sizes");
-            summary.AppendLine($"Lighting: {lightingPreset}");
-            summary.AppendLine($"Estimated time: {GetEstimatedProcessingTime():F1}s");
-            
-            return summary.ToString();
-        }
-    }
-    
-    /// <summary>
-    /// Export format options
-    /// </summary>
-    [Serializable]
-    public enum ExportFormat
-    {
-        PNG,
-        TGA
-    }
-    
-    /// <summary>
-    /// Lighting preset enumeration (existing, expanded for v1.2.0)
-    /// </summary>
-    [Serializable]
-    public enum LightingPreset
-    {
-        Custom,
-        Studio,
-        Dramatic,
-        Soft,
-        ProductShot,
-        Cinematic,
-        Technical
-    }
-    
-    /// <summary>
-    /// Point light configuration
-    /// </summary>
-    [Serializable]
-    public class PointLightConfiguration
-    {
-        public bool enabled = true;
-        public Vector3 position = Vector3.zero;
-        public Color color = Color.white;
-        public float intensity = 1.0f;
-        public float range = 10.0f;
-        
-        public PointLightConfiguration()
-        {
-            enabled = true;
-            position = Vector3.zero;
-            color = Color.white;
-            intensity = 1.0f;
-            range = 10.0f;
-        }
-        
-        public PointLightConfiguration(Vector3 pos, Color col, float inten, float ran)
-        {
-            enabled = true;
-            position = pos;
-            color = col;
-            intensity = inten;
-            range = ran;
-        }
-    }
-    
-    /// <summary>
-    /// Complete lighting configuration
-    /// </summary>
-    [Serializable]
-    public class LightingConfiguration
-    {
-        [Header("Main Light")]
-        public bool enableMainLight = true;
-        public Vector3 mainLightDirection = new Vector3(-30f, 50f, -30f);
-        public Color mainLightColor = Color.white;
-        public float mainLightIntensity = 1.2f;
-        
-        [Header("Fill Light")]
-        public bool enableFillLight = true;
-        public Vector3 fillLightDirection = new Vector3(30f, 10f, 30f);
-        public Color fillLightColor = new Color(0.8f, 0.9f, 1.0f);
-        public float fillLightIntensity = 0.4f;
-        
-        [Header("Point Lights")]
-        public List<PointLightConfiguration> pointLights = new List<PointLightConfiguration>();
-        
-        [Header("Environment")]
-        public Color ambientColor = new Color(0.2f, 0.2f, 0.25f);
-        public float ambientIntensity = 0.3f;
-        
-        public LightingConfiguration()
-        {
-            // Initialize with default point lights
-            if (pointLights.Count == 0)
-            {
-                pointLights.Add(new PointLightConfiguration(
-                    new Vector3(2f, 2f, 2f), 
-                    Color.white, 
-                    0.8f, 
-                    5f
-                ));
-            }
+            objectScale = EditorPrefs.GetFloat("UnityIconGen_ObjectScale", objectScale);
+            if (EditorPrefs.HasKey("UnityIconGen_ObjectPos"))
+                JsonUtility.FromJsonOverwrite(EditorPrefs.GetString("UnityIconGen_ObjectPos"), objectPosition);
+            if (EditorPrefs.HasKey("UnityIconGen_ObjectRot"))
+                JsonUtility.FromJsonOverwrite(EditorPrefs.GetString("UnityIconGen_ObjectRot"), objectRotation);
+            autoCenter = EditorPrefs.GetBool("UnityIconGen_AutoCenter", autoCenter);
+            autoFit = EditorPrefs.GetBool("UnityIconGen_AutoFit", autoFit);
         }
         
         public void AddPointLight()
         {
-            pointLights.Add(new PointLightConfiguration());
+            pointLights.Add(new PointLightSettings());
+            SaveToPrefs();
         }
         
         public void RemovePointLight(int index)
@@ -304,12 +191,81 @@ namespace Razluta.UnityIconGenerationFromModels.Editor
             if (index >= 0 && index < pointLights.Count)
             {
                 pointLights.RemoveAt(index);
+                SaveToPrefs();
+            }
+        }
+
+        public void ApplyLightingPreset(LightingPresetType presetType)
+        {
+            currentLightingPreset = presetType;
+            
+            if (presetType != LightingPresetType.Custom)
+            {
+                var preset = LightingPresets.GetPreset(presetType);
+                if (preset != null)
+                {
+                    mainLightDirection = preset.mainLightDirection;
+                    mainLightColor = preset.mainLightColor;
+                    mainLightIntensity = preset.mainLightIntensity;
+                    fillLightDirection = preset.fillLightDirection;
+                    fillLightColor = preset.fillLightColor;
+                    fillLightIntensity = preset.fillLightIntensity;
+                    
+                    // Replace point lights with preset point lights
+                    pointLights.Clear();
+                    foreach (var pointLight in preset.pointLights)
+                    {
+                        pointLights.Add(new PointLightSettings(
+                            pointLight.position,
+                            pointLight.color,
+                            pointLight.intensity,
+                            pointLight.range
+                        ) { enabled = pointLight.enabled });
+                    }
+                }
+            }
+            
+            SaveToPrefs();
+        }
+
+        public void OnLightingChanged()
+        {
+            // Check if current lighting still matches the selected preset
+            if (currentLightingPreset != LightingPresetType.Custom)
+            {
+                if (!LightingPresets.IsLightingMatchingPreset(this, currentLightingPreset))
+                {
+                    currentLightingPreset = LightingPresetType.Custom;
+                    SaveToPrefs();
+                }
             }
         }
         
-        public int GetEnabledPointLightCount()
+        public static int[] GetAvailableSizes()
         {
-            return pointLights.Count(light => light.enabled);
+            var sizes = new List<int>();
+            for (int i = 4; i <= 12; i++) // 2^4 = 16 to 2^12 = 4096
+            {
+                sizes.Add((int)Mathf.Pow(2, i));
+            }
+            return sizes.ToArray();
+        }
+        
+        public static string GetSizeDisplayName(int size)
+        {
+            return $"{size}x{size}";
+        }
+        
+        public List<int> GetAllSizes()
+        {
+            var allSizes = new List<int> { iconSize };
+            allSizes.AddRange(additionalSizes);
+            return allSizes;
+        }
+        
+        public string GetFileExtension()
+        {
+            return exportFormat == ExportFormat.PNG ? "png" : "tga";
         }
     }
 }

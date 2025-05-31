@@ -1,917 +1,998 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEditor;
+using UnityEditor.UIElements;
 using UnityEngine;
+using UnityEngine.UIElements;
 
-namespace Razluta.UnityIconGenerationFromModels.Editor
+namespace Razluta.UnityIconGenerationFromModels
 {
-    /// <summary>
-    /// Main Unity Editor window for Icon Generation Tool v1.2.0
-    /// Features quality settings, multi-folder processing, and generation reports
-    /// </summary>
-    public class IconGeneratorWindow : EditorWindow
+    public class UnityIconGenerationWindow : EditorWindow
     {
-        [SerializeField]
-        private IconGeneratorSettings settings = new IconGeneratorSettings();
-        
-        [SerializeField]
-        private bool showQualitySettings = true;
-        [SerializeField]
-        private bool showInputSettings = true;
-        [SerializeField]
-        private bool showOutputSettings = true;
-        [SerializeField]
-        private bool showLightingSettings = false;
-        [SerializeField]
-        private bool showAdvancedSettings = false;
-        [SerializeField]
-        private bool showReportsPanel = false;
-        
-        private Vector2 scrollPosition;
-        private bool isProcessing = false;
-        private float processingProgress = 0f;
-        private string processingStatus = "";
-        private GenerationReport currentReport;
-        
-        // UI Style constants
-        private const float SECTION_PADDING = 10f;
-        private const float BUTTON_HEIGHT = 25f;
-        private const float FIELD_HEIGHT = 18f;
+        private IconGeneratorSettings settings;
+        private VisualElement root;
+        private Label prefabCountLabel;
+        private Label statusLabel;
+        private Button generateButton;
+        private Button previewButton;
+        private VisualElement pointLightsContainer;
+        private Button addPointLightButton;
+        private Button setupMockupButton;
+        private Button capturePreviewButton;
+        private Button collectConfigButton;
+        private Button saveConfigButton;
+        private Button loadConfigButton;
+        private DropdownField lightingPresetDropdown;
+        private DropdownField iconSizeDropdown;
+        private DropdownField exportFormatDropdown;
+        private VisualElement additionalSizesContainer;
+        private Button addSizeButton;
+        private Button titleButton;
+        private Button versionButton;
         
         [MenuItem("Tools/Razluta/Unity Icon Generation From Models")]
         public static void ShowWindow()
         {
-            var window = GetWindow<IconGeneratorWindow>();
-            window.titleContent = new GUIContent("Icon Generator v1.2.0");
-            window.minSize = new Vector2(450, 600);
-            window.Show();
+            var window = GetWindow<UnityIconGenerationWindow>();
+            window.titleContent = new GUIContent("Unity Icon Generation");
+            window.minSize = new Vector2(400, 700);
         }
         
-        private void OnEnable()
+        public void CreateGUI()
         {
-            LoadSettings();
-        }
-        
-        private void OnDisable()
-        {
-            SaveSettings();
-        }
-        
-        private void OnGUI()
-        {
-            scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
+            settings = new IconGeneratorSettings();
+            settings.LoadFromPrefs();
             
-            DrawHeader();
-            DrawQualitySection();
-            DrawInputSection();
-            DrawOutputSection();
-            DrawLightingSection();
-            DrawAdvancedSection();
-            DrawGenerationControls();
-            DrawProgressSection();
-            DrawReportsSection();
-            
-            EditorGUILayout.EndScrollView();
-        }
-        
-        private void DrawHeader()
-        {
-            EditorGUILayout.Space(5);
-            
-            using (new EditorGUILayout.HorizontalScope())
+            var visualTree = Resources.Load<VisualTreeAsset>("IconGeneratorWindow");
+            if (visualTree == null)
             {
-                GUILayout.FlexibleSpace();
-                
-                var titleStyle = new GUIStyle(EditorStyles.boldLabel)
-                {
-                    fontSize = 16,
-                    alignment = TextAnchor.MiddleCenter
-                };
-                
-                if (GUILayout.Button("Unity Icon Generation v1.2.0", titleStyle, GUILayout.Height(30)))
-                {
-                    Application.OpenURL("https://github.com/razluta/UnityIconGenerationFromModels");
-                }
-                
-                GUILayout.FlexibleSpace();
+                CreateGUIFallback();
+                return;
             }
             
-            EditorGUILayout.Space(10);
+            root = rootVisualElement;
+            visualTree.CloneTree(root);
+            
+            BindUIElements();
+            UpdatePrefabCount();
+            RefreshPointLightsUI();
+            SetupLightingPresetDropdown();
+            SetupIconSizeDropdown();
+            SetupExportFormatDropdown();
+            RefreshAdditionalSizesUI();
         }
         
-        private void DrawQualitySection()
+        private void CreateGUIFallback()
         {
-            showQualitySettings = EditorGUILayout.BeginFoldoutHeaderGroup(showQualitySettings, "🎨 Quality Settings");
+            root = rootVisualElement;
             
-            if (showQualitySettings)
+            var scrollView = new ScrollView();
+            root.Add(scrollView);
+            
+            var container = new VisualElement();
+            container.style.paddingTop = 10;
+            container.style.paddingBottom = 10;
+            container.style.paddingLeft = 10;
+            container.style.paddingRight = 10;
+            scrollView.Add(container);
+            
+            // Title button (hyperlinked)
+            titleButton = new Button(() => OpenGitHubPage()) { text = "Unity Icon Generation From Models" };
+            titleButton.name = "title-button";
+            titleButton.style.fontSize = 18;
+            titleButton.style.unityFontStyleAndWeight = FontStyle.Bold;
+            titleButton.style.marginBottom = 5;
+            titleButton.style.unityTextAlign = TextAnchor.MiddleCenter;
+            titleButton.style.backgroundColor = new Color(0, 0, 0, 0);
+            titleButton.style.borderTopWidth = 0;
+            titleButton.style.borderBottomWidth = 0;
+            titleButton.style.borderLeftWidth = 0;
+            titleButton.style.borderRightWidth = 0;
+            container.Add(titleButton);
+            
+            // Version button (hyperlinked)
+            versionButton = new Button(() => OpenChangelogPage()) { text = "v1.1.0" };
+            versionButton.name = "version-button";
+            versionButton.style.fontSize = 12;
+            versionButton.style.marginBottom = 10;
+            versionButton.style.unityTextAlign = TextAnchor.MiddleCenter;
+            versionButton.style.backgroundColor = new Color(0, 0, 0, 0);
+            versionButton.style.borderTopWidth = 0;
+            versionButton.style.borderBottomWidth = 0;
+            versionButton.style.borderLeftWidth = 0;
+            versionButton.style.borderRightWidth = 0;
+            versionButton.style.color = new Color(0.6f, 0.6f, 0.6f, 1f);
+            container.Add(versionButton);
+            
+            var inputFoldout = new Foldout { text = "Input Settings", value = true };
+            container.Add(inputFoldout);
+            
+            var inputFolder = new ObjectField("Input Folder") { objectType = typeof(DefaultAsset) };
+            inputFolder.name = "input-folder";
+            inputFoldout.Add(inputFolder);
+            
+            var prefabPrefix = new TextField("Prefab Name Prefix");
+            prefabPrefix.name = "prefab-prefix";
+            inputFoldout.Add(prefabPrefix);
+            
+            prefabCountLabel = new Label("Found Prefabs: 0");
+            prefabCountLabel.name = "prefab-count";
+            prefabCountLabel.style.marginTop = 5;
+            prefabCountLabel.style.unityFontStyleAndWeight = FontStyle.Italic;
+            inputFoldout.Add(prefabCountLabel);
+            
+            var outputFoldout = new Foldout { text = "Output Settings", value = true };
+            container.Add(outputFoldout);
+            
+            var outputFolder = new ObjectField("Output Folder") { objectType = typeof(DefaultAsset) };
+            outputFolder.name = "output-folder";
+            outputFoldout.Add(outputFolder);
+            
+            iconSizeDropdown = new DropdownField("Icon Size");
+            iconSizeDropdown.name = "icon-size-dropdown";
+            outputFoldout.Add(iconSizeDropdown);
+            
+            exportFormatDropdown = new DropdownField("Export Format");
+            exportFormatDropdown.name = "export-format-dropdown";
+            outputFoldout.Add(exportFormatDropdown);
+            
+            var additionalSizesLabel = new Label("Additional Sizes");
+            additionalSizesLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            additionalSizesLabel.style.marginTop = 10;
+            outputFoldout.Add(additionalSizesLabel);
+            
+            additionalSizesContainer = new VisualElement();
+            additionalSizesContainer.name = "additional-sizes-container";
+            additionalSizesContainer.style.marginTop = 5;
+            outputFoldout.Add(additionalSizesContainer);
+            
+            addSizeButton = new Button(() => AddSizeVariant()) { text = "Add Size Variant" };
+            addSizeButton.name = "add-size-button";
+            addSizeButton.style.height = 25;
+            addSizeButton.style.marginTop = 5;
+            outputFoldout.Add(addSizeButton);
+            
+            var cameraFoldout = new Foldout { text = "Camera Settings", value = false };
+            container.Add(cameraFoldout);
+            
+            var cameraPosition = new Vector3Field("Camera Position");
+            cameraPosition.name = "camera-position";
+            cameraFoldout.Add(cameraPosition);
+            
+            var cameraRotation = new Vector3Field("Camera Rotation");
+            cameraRotation.name = "camera-rotation";
+            cameraFoldout.Add(cameraRotation);
+            
+            var cameraFov = new FloatField("Field of View");
+            cameraFov.name = "camera-fov";
+            cameraFoldout.Add(cameraFov);
+            
+            var backgroundColor = new ColorField("Background Color");
+            backgroundColor.name = "background-color";
+            cameraFoldout.Add(backgroundColor);
+            
+            var lightingFoldout = new Foldout { text = "Lighting Settings", value = false };
+            container.Add(lightingFoldout);
+            
+            lightingPresetDropdown = new DropdownField("Lighting Preset");
+            lightingPresetDropdown.name = "lighting-preset-dropdown";
+            lightingPresetDropdown.style.marginBottom = 10;
+            lightingFoldout.Add(lightingPresetDropdown);
+            
+            var mainLightLabel = new Label("Main Light");
+            mainLightLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            lightingFoldout.Add(mainLightLabel);
+            
+            var mainLightDirection = new Vector3Field("Direction");
+            mainLightDirection.name = "main-light-direction";
+            lightingFoldout.Add(mainLightDirection);
+            
+            var mainLightColor = new ColorField("Color");
+            mainLightColor.name = "main-light-color";
+            lightingFoldout.Add(mainLightColor);
+            
+            var mainLightIntensity = new FloatField("Intensity");
+            mainLightIntensity.name = "main-light-intensity";
+            lightingFoldout.Add(mainLightIntensity);
+            
+            var fillLightLabel = new Label("Fill Light");
+            fillLightLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            fillLightLabel.style.marginTop = 10;
+            lightingFoldout.Add(fillLightLabel);
+            
+            var fillLightDirection = new Vector3Field("Direction");
+            fillLightDirection.name = "fill-light-direction";
+            lightingFoldout.Add(fillLightDirection);
+            
+            var fillLightColor = new ColorField("Color");
+            fillLightColor.name = "fill-light-color";
+            lightingFoldout.Add(fillLightColor);
+            
+            var fillLightIntensity = new FloatField("Intensity");
+            fillLightIntensity.name = "fill-light-intensity";
+            lightingFoldout.Add(fillLightIntensity);
+            
+            var pointLightsLabel = new Label("Additional Point Lights");
+            pointLightsLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            pointLightsLabel.style.marginTop = 10;
+            lightingFoldout.Add(pointLightsLabel);
+            
+            pointLightsContainer = new VisualElement();
+            pointLightsContainer.name = "point-lights-container";
+            pointLightsContainer.style.marginTop = 5;
+            lightingFoldout.Add(pointLightsContainer);
+            
+            addPointLightButton = new Button(() => AddPointLight()) { text = "Add Point Light" };
+            addPointLightButton.name = "add-point-light-button";
+            addPointLightButton.style.height = 25;
+            addPointLightButton.style.marginTop = 5;
+            lightingFoldout.Add(addPointLightButton);
+            
+            var advancedFoldout = new Foldout { text = "Advanced Settings", value = false };
+            container.Add(advancedFoldout);
+            
+            var objectScale = new FloatField("Object Scale");
+            objectScale.name = "object-scale";
+            advancedFoldout.Add(objectScale);
+            
+            var objectPosition = new Vector3Field("Object Position");
+            objectPosition.name = "object-position";
+            advancedFoldout.Add(objectPosition);
+            
+            var objectRotation = new Vector3Field("Object Rotation");
+            objectRotation.name = "object-rotation";
+            advancedFoldout.Add(objectRotation);
+            
+            var autoCenter = new Toggle("Auto Center");
+            autoCenter.name = "auto-center";
+            advancedFoldout.Add(autoCenter);
+            
+            var autoFit = new Toggle("Auto Fit");
+            autoFit.name = "auto-fit";
+            advancedFoldout.Add(autoFit);
+            
+            var configPresetsLabel = new Label("Configuration Presets");
+            configPresetsLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            configPresetsLabel.style.marginTop = 20;
+            configPresetsLabel.style.marginBottom = 5;
+            container.Add(configPresetsLabel);
+            
+            var configButtonRow = new VisualElement();
+            configButtonRow.style.flexDirection = FlexDirection.Row;
+            configButtonRow.style.marginBottom = 10;
+            container.Add(configButtonRow);
+            
+            saveConfigButton = new Button(() => SaveConfiguration()) { text = "Save Configuration" };
+            saveConfigButton.name = "save-config-button";
+            saveConfigButton.style.height = 30;
+            saveConfigButton.style.flexGrow = 1;
+            saveConfigButton.style.marginRight = 2;
+            configButtonRow.Add(saveConfigButton);
+            
+            loadConfigButton = new Button(() => LoadConfiguration()) { text = "Load Configuration" };
+            loadConfigButton.name = "load-config-button";
+            loadConfigButton.style.height = 30;
+            loadConfigButton.style.flexGrow = 1;
+            loadConfigButton.style.marginLeft = 2;
+            configButtonRow.Add(loadConfigButton);
+            
+            var previewConfigLabel = new Label("Preview & Configuration");
+            previewConfigLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            previewConfigLabel.style.marginBottom = 5;
+            container.Add(previewConfigLabel);
+            
+            var buttonRow = new VisualElement();
+            buttonRow.style.flexDirection = FlexDirection.Row;
+            buttonRow.style.marginBottom = 5;
+            container.Add(buttonRow);
+            
+            setupMockupButton = new Button(() => SetupSceneMockup()) { text = "Setup Scene Mockup" };
+            setupMockupButton.name = "setup-mockup-button";
+            setupMockupButton.style.height = 30;
+            setupMockupButton.style.flexGrow = 1;
+            setupMockupButton.style.marginRight = 2;
+            buttonRow.Add(setupMockupButton);
+            
+            capturePreviewButton = new Button(() => CapturePreview()) { text = "Capture Preview" };
+            capturePreviewButton.name = "capture-preview-button";
+            capturePreviewButton.style.height = 30;
+            capturePreviewButton.style.flexGrow = 1;
+            capturePreviewButton.style.marginLeft = 2;
+            buttonRow.Add(capturePreviewButton);
+            
+            collectConfigButton = new Button(() => CollectSceneConfiguration()) { text = "Collect Scene Configuration" };
+            collectConfigButton.name = "collect-config-button";
+            collectConfigButton.style.height = 30;
+            collectConfigButton.style.marginBottom = 10;
+            container.Add(collectConfigButton);
+            
+            previewButton = new Button(() => PreviewSettings()) { text = "Preview Settings" };
+            previewButton.name = "preview-button";
+            previewButton.style.height = 30;
+            previewButton.style.marginBottom = 5;
+            container.Add(previewButton);
+            
+            generateButton = new Button(() => GenerateIcons()) { text = "Generate Icons" };
+            generateButton.name = "generate-button";
+            generateButton.style.height = 40;
+            generateButton.style.fontSize = 14;
+            generateButton.style.unityFontStyleAndWeight = FontStyle.Bold;
+            container.Add(generateButton);
+            
+            statusLabel = new Label("");
+            statusLabel.name = "status-label";
+            statusLabel.style.marginTop = 10;
+            statusLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
+            container.Add(statusLabel);
+            
+            BindUIElementsFallback();
+        }
+        
+        private void BindUIElements()
+        {
+            prefabCountLabel = root.Q<Label>("prefab-count");
+            statusLabel = root.Q<Label>("status-label");
+            generateButton = root.Q<Button>("generate-button");
+            previewButton = root.Q<Button>("preview-button");
+            pointLightsContainer = root.Q<VisualElement>("point-lights-container");
+            addPointLightButton = root.Q<Button>("add-point-light-button");
+            setupMockupButton = root.Q<Button>("setup-mockup-button");
+            capturePreviewButton = root.Q<Button>("capture-preview-button");
+            collectConfigButton = root.Q<Button>("collect-config-button");
+            saveConfigButton = root.Q<Button>("save-config-button");
+            loadConfigButton = root.Q<Button>("load-config-button");
+            lightingPresetDropdown = root.Q<DropdownField>("lighting-preset-dropdown");
+            iconSizeDropdown = root.Q<DropdownField>("icon-size-dropdown");
+            exportFormatDropdown = root.Q<DropdownField>("export-format-dropdown");
+            additionalSizesContainer = root.Q<VisualElement>("additional-sizes-container");
+            addSizeButton = root.Q<Button>("add-size-button");
+            titleButton = root.Q<Button>("title-button");
+            versionButton = root.Q<Button>("version-button");
+            
+            var inputFolder = root.Q<ObjectField>("input-folder");
+            if (inputFolder != null)
             {
-                EditorGUI.indentLevel++;
-                
-                EditorGUILayout.Space(5);
-                
-                // Quality Preset Selection
-                var newQualityPreset = (RenderQualityPreset)EditorGUILayout.EnumPopup(
-                    new GUIContent("Render Quality Preset", "Choose preset for speed vs quality balance"),
-                    settings.qualitySettings.renderQualityPreset
-                );
-                
-                if (newQualityPreset != settings.qualitySettings.renderQualityPreset)
-                {
-                    settings.ApplyQualityPreset(newQualityPreset);
-                }
-                
-                // Performance Impact Display
-                EditorGUILayout.Space(3);
-                var impactDescription = settings.qualitySettings.GetPerformanceImpactDescription();
-                var impactStyle = new GUIStyle(EditorStyles.helpBox)
-                {
-                    fontSize = 11,
-                    wordWrap = true
-                };
-                EditorGUILayout.LabelField(impactDescription, impactStyle);
-                
-                EditorGUILayout.Space(5);
-                
-                // Anti-aliasing Settings
-                settings.qualitySettings.antiAliasingLevel = (AntiAliasingLevel)EditorGUILayout.EnumPopup(
-                    new GUIContent("Anti-aliasing", "Higher values = better quality but slower processing"),
-                    settings.qualitySettings.antiAliasingLevel
-                );
-                
-                // Advanced Quality Settings
-                EditorGUILayout.Space(8);
-                EditorGUILayout.LabelField("Advanced Quality", EditorStyles.boldLabel);
-                
-                settings.qualitySettings.renderScale = EditorGUILayout.Slider(
-                    new GUIContent("Render Scale", "Render at higher resolution then downscale for better quality"),
-                    settings.qualitySettings.renderScale, 0.5f, 2.0f
-                );
-                
-                settings.qualitySettings.enableHDR = EditorGUILayout.Toggle(
-                    new GUIContent("Enable HDR", "High Dynamic Range rendering for better lighting"),
-                    settings.qualitySettings.enableHDR
-                );
-                
-                settings.qualitySettings.enableShadows = EditorGUILayout.Toggle(
-                    new GUIContent("Enable Shadows", "Render shadows for more realistic icons"),
-                    settings.qualitySettings.enableShadows
-                );
-                
-                if (settings.qualitySettings.enableShadows)
-                {
-                    EditorGUI.indentLevel++;
-                    settings.qualitySettings.shadowResolution = EditorGUILayout.IntSlider(
-                        new GUIContent("Shadow Resolution", "Higher values = better shadow quality"),
-                        settings.qualitySettings.shadowResolution, 256, 4096
-                    );
-                    EditorGUI.indentLevel--;
-                }
-                
-                EditorGUI.indentLevel--;
+                inputFolder.value = AssetDatabase.LoadAssetAtPath<DefaultAsset>(settings.inputFolderPath);
+                inputFolder.RegisterValueChangedCallback(evt => {
+                    if (evt.newValue != null)
+                        settings.inputFolderPath = AssetDatabase.GetAssetPath(evt.newValue);
+                    UpdatePrefabCount();
+                    settings.SaveToPrefs();
+                });
             }
             
-            EditorGUILayout.EndFoldoutHeaderGroup();
-        }
-        
-        private void DrawInputSection()
-        {
-            showInputSettings = EditorGUILayout.BeginFoldoutHeaderGroup(showInputSettings, "📁 Input Folders");
-            
-            if (showInputSettings)
+            var prefabPrefix = root.Q<TextField>("prefab-prefix");
+            if (prefabPrefix != null)
             {
-                EditorGUI.indentLevel++;
-                
-                EditorGUILayout.Space(5);
-                
-                // Multi-folder management
-                var folders = settings.multiFolderManager.InputFolders;
-                
-                for (int i = 0; i < folders.Count; i++)
-                {
-                    EditorGUILayout.Space(5);
-                    
-                    using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
-                    {
-                        using (new EditorGUILayout.HorizontalScope())
-                        {
-                            EditorGUILayout.LabelField($"Folder {i + 1}", EditorStyles.boldLabel, GUILayout.Width(60));
-                            
-                            folders[i].isEnabled = EditorGUILayout.Toggle(
-                                new GUIContent("Enabled", "Include this folder in processing"),
-                                folders[i].isEnabled,
-                                GUILayout.Width(60)
-                            );
-                            
-                            GUILayout.FlexibleSpace();
-                            
-                            if (folders.Count > 1 && GUILayout.Button("✕", GUILayout.Width(25), GUILayout.Height(20)))
-                            {
-                                settings.multiFolderManager.RemoveFolder(i);
-                                break;
-                            }
-                        }
-                        
-                        using (new EditorGUI.DisabledScope(!folders[i].isEnabled))
-                        {
-                            // Folder path selection
-                            using (new EditorGUILayout.HorizontalScope())
-                            {
-                                folders[i].folderPath = EditorGUILayout.TextField(
-                                    new GUIContent("Path", "Folder containing prefabs to process"),
-                                    folders[i].folderPath
-                                );
-                                
-                                if (GUILayout.Button("Browse", GUILayout.Width(60)))
-                                {
-                                    var selectedPath = EditorUtility.OpenFolderPanel(
-                                        "Select Prefabs Folder",
-                                        string.IsNullOrEmpty(folders[i].folderPath) ? Application.dataPath : folders[i].folderPath,
-                                        ""
-                                    );
-                                    
-                                    if (!string.IsNullOrEmpty(selectedPath))
-                                    {
-                                        folders[i].folderPath = selectedPath;
-                                    }
-                                }
-                            }
-                            
-                            // Prefab prefix
-                            folders[i].prefabPrefix = EditorGUILayout.TextField(
-                                new GUIContent("Prefix", "Prefix that prefab names must start with"),
-                                folders[i].prefabPrefix
-                            );
-                            
-                            // Custom settings toggle
-                            folders[i].useCustomSettings = EditorGUILayout.Toggle(
-                                new GUIContent("Custom Transform", "Override global transform settings for this folder"),
-                                folders[i].useCustomSettings
-                            );
-                            
-                            if (folders[i].useCustomSettings)
-                            {
-                                EditorGUI.indentLevel++;
-                                folders[i].customObjectScale = EditorGUILayout.Vector3Field("Scale", folders[i].customObjectScale);
-                                folders[i].customObjectPosition = EditorGUILayout.Vector3Field("Position", folders[i].customObjectPosition);
-                                folders[i].customObjectRotation = EditorGUILayout.Vector3Field("Rotation", folders[i].customObjectRotation);
-                                EditorGUI.indentLevel--;
-                            }
-                            
-                            // Folder status
-                            if (folders[i].isEnabled)
-                            {
-                                var displayName = folders[i].GetDisplayName();
-                                var statusStyle = new GUIStyle(EditorStyles.miniLabel)
-                                {
-                                    fontStyle = FontStyle.Italic
-                                };
-                                EditorGUILayout.LabelField(displayName, statusStyle);
-                            }
-                        }
-                    }
-                }
-                
-                EditorGUILayout.Space(5);
-                
-                // Add folder button
-                if (GUILayout.Button("➕ Add Input Folder", GUILayout.Height(BUTTON_HEIGHT)))
-                {
-                    settings.multiFolderManager.AddFolder();
-                }
-                
-                // Multi-folder summary
-                EditorGUILayout.Space(5);
-                var summary = settings.multiFolderManager.GetSummary();
-                var summaryStyle = new GUIStyle(EditorStyles.helpBox)
-                {
-                    fontSize = 11,
-                    fontStyle = FontStyle.Bold
-                };
-                EditorGUILayout.LabelField(summary, summaryStyle);
-                
-                EditorGUI.indentLevel--;
+                prefabPrefix.value = settings.prefabNamePrefix;
+                prefabPrefix.RegisterValueChangedCallback(evt => {
+                    settings.prefabNamePrefix = evt.newValue;
+                    UpdatePrefabCount();
+                    settings.SaveToPrefs();
+                });
             }
             
-            EditorGUILayout.EndFoldoutHeaderGroup();
-        }
-        
-        private void DrawOutputSection()
-        {
-            showOutputSettings = EditorGUILayout.BeginFoldoutHeaderGroup(showOutputSettings, "💾 Output Settings");
-            
-            if (showOutputSettings)
+            var outputFolder = root.Q<ObjectField>("output-folder");
+            if (outputFolder != null)
             {
-                EditorGUI.indentLevel++;
-                
-                EditorGUILayout.Space(5);
-                
-                // Output folder selection
-                using (new EditorGUILayout.HorizontalScope())
-                {
-                    settings.outputFolderPath = EditorGUILayout.TextField(
-                        new GUIContent("Output Folder", "Where generated icons will be saved"),
-                        settings.outputFolderPath
-                    );
-                    
-                    if (GUILayout.Button("Browse", GUILayout.Width(60)))
-                    {
-                        var selectedPath = EditorUtility.OpenFolderPanel(
-                            "Select Output Folder",
-                            string.IsNullOrEmpty(settings.outputFolderPath) ? Application.dataPath : settings.outputFolderPath,
-                            ""
-                        );
-                        
-                        if (!string.IsNullOrEmpty(selectedPath))
-                        {
-                            settings.outputFolderPath = selectedPath;
-                        }
-                    }
-                }
-                
-                // Export format
-                settings.exportFormat = (ExportFormat)EditorGUILayout.EnumPopup(
-                    new GUIContent("Export Format", "PNG recommended for most use cases, TGA for professional pipelines"),
-                    settings.exportFormat
-                );
-                
-                EditorGUILayout.Space(8);
-                
-                // Icon sizes
-                EditorGUILayout.LabelField("Icon Sizes", EditorStyles.boldLabel);
-                
-                settings.mainIconSize = EditorGUILayout.IntPopup(
-                    new GUIContent("Main Size", "Primary icon size (gets clean filename)"),
-                    settings.mainIconSize,
-                    new string[] { "16x16", "32x32", "64x64", "128x128", "256x256", "512x512", "1024x1024", "2048x2048", "4096x4096" },
-                    new int[] { 16, 32, 64, 128, 256, 512, 1024, 2048, 4096 }
-                );
-                
-                EditorGUILayout.Space(5);
-                EditorGUILayout.LabelField("Additional Sizes", EditorStyles.boldLabel);
-                
-                // Additional sizes management
-                for (int i = 0; i < settings.additionalSizes.Count; i++)
-                {
-                    using (new EditorGUILayout.HorizontalScope())
-                    {
-                        settings.additionalSizes[i] = EditorGUILayout.IntPopup(
-                            settings.additionalSizes[i],
-                            new string[] { "16x16", "32x32", "64x64", "128x128", "256x256", "512x512", "1024x1024", "2048x2048", "4096x4096" },
-                            new int[] { 16, 32, 64, 128, 256, 512, 1024, 2048, 4096 }
-                        );
-                        
-                        if (GUILayout.Button("✕", GUILayout.Width(25)))
-                        {
-                            settings.additionalSizes.RemoveAt(i);
-                            break;
-                        }
-                    }
-                }
-                
-                if (GUILayout.Button("➕ Add Size Variant", GUILayout.Height(BUTTON_HEIGHT)))
-                {
-                    settings.additionalSizes.Add(256);
-                }
-                
-                // Output summary
-                EditorGUILayout.Space(5);
-                var totalIcons = settings.GetTotalIconCount();
-                var outputSummary = $"Will generate {totalIcons} icons total ({settings.GetAllSizes().Count} sizes × {settings.multiFolderManager.GetTotalPrefabCount()} prefabs)";
-                EditorGUILayout.LabelField(outputSummary, EditorStyles.helpBox);
-                
-                EditorGUI.indentLevel--;
+                outputFolder.value = AssetDatabase.LoadAssetAtPath<DefaultAsset>(settings.outputFolderPath);
+                outputFolder.RegisterValueChangedCallback(evt => {
+                    if (evt.newValue != null)
+                        settings.outputFolderPath = AssetDatabase.GetAssetPath(evt.newValue);
+                    settings.SaveToPrefs();
+                });
             }
             
-            EditorGUILayout.EndFoldoutHeaderGroup();
-        }
-        
-        private void DrawLightingSection()
-        {
-            showLightingSettings = EditorGUILayout.BeginFoldoutHeaderGroup(showLightingSettings, "💡 Lighting Settings");
+            BindField<Vector3Field, Vector3>("camera-position", settings.cameraPosition, val => settings.cameraPosition = val);
+            BindField<Vector3Field, Vector3>("camera-rotation", settings.cameraRotation, val => settings.cameraRotation = val);
+            BindField<FloatField, float>("camera-fov", settings.cameraFOV, val => settings.cameraFOV = val);
+            BindField<ColorField, Color>("background-color", settings.backgroundColor, val => settings.backgroundColor = val);
             
-            if (showLightingSettings)
+            BindField<Vector3Field, Vector3>("main-light-direction", settings.mainLightDirection, val => {
+                settings.mainLightDirection = val;
+                settings.OnLightingChanged();
+                UpdateLightingPresetDropdown();
+            });
+            BindField<ColorField, Color>("main-light-color", settings.mainLightColor, val => {
+                settings.mainLightColor = val;
+                settings.OnLightingChanged();
+                UpdateLightingPresetDropdown();
+            });
+            BindField<FloatField, float>("main-light-intensity", settings.mainLightIntensity, val => {
+                settings.mainLightIntensity = val;
+                settings.OnLightingChanged();
+                UpdateLightingPresetDropdown();
+            });
+            BindField<Vector3Field, Vector3>("fill-light-direction", settings.fillLightDirection, val => {
+                settings.fillLightDirection = val;
+                settings.OnLightingChanged();
+                UpdateLightingPresetDropdown();
+            });
+            BindField<ColorField, Color>("fill-light-color", settings.fillLightColor, val => {
+                settings.fillLightColor = val;
+                settings.OnLightingChanged();
+                UpdateLightingPresetDropdown();
+            });
+            BindField<FloatField, float>("fill-light-intensity", settings.fillLightIntensity, val => {
+                settings.fillLightIntensity = val;
+                settings.OnLightingChanged();
+                UpdateLightingPresetDropdown();
+            });
+            
+            BindField<FloatField, float>("object-scale", settings.objectScale, val => settings.objectScale = val);
+            BindField<Vector3Field, Vector3>("object-position", settings.objectPosition, val => settings.objectPosition = val);
+            BindField<Vector3Field, Vector3>("object-rotation", settings.objectRotation, val => settings.objectRotation = val);
+            BindField<Toggle, bool>("auto-center", settings.autoCenter, val => settings.autoCenter = val);
+            BindField<Toggle, bool>("auto-fit", settings.autoFit, val => settings.autoFit = val);
+            
+            if (generateButton != null)
             {
-                EditorGUI.indentLevel++;
-                
-                EditorGUILayout.Space(5);
-                
-                // Lighting preset selection
-                var newLightingPreset = (LightingPreset)EditorGUILayout.EnumPopup(
-                    new GUIContent("Lighting Preset", "Professional lighting configurations"),
-                    settings.lightingPreset
-                );
-                
-                if (newLightingPreset != settings.lightingPreset)
-                {
-                    settings.lightingPreset = newLightingPreset;
-                    // Apply preset configuration would go here
-                }
-                
-                EditorGUILayout.Space(8);
-                
-                // Main light settings
-                EditorGUILayout.LabelField("Main Light", EditorStyles.boldLabel);
-                settings.lightingConfiguration.enableMainLight = EditorGUILayout.Toggle("Enable Main Light", settings.lightingConfiguration.enableMainLight);
-                
-                if (settings.lightingConfiguration.enableMainLight)
-                {
-                    EditorGUI.indentLevel++;
-                    settings.lightingConfiguration.mainLightDirection = EditorGUILayout.Vector3Field("Direction", settings.lightingConfiguration.mainLightDirection);
-                    settings.lightingConfiguration.mainLightColor = EditorGUILayout.ColorField("Color", settings.lightingConfiguration.mainLightColor);
-                    settings.lightingConfiguration.mainLightIntensity = EditorGUILayout.Slider("Intensity", settings.lightingConfiguration.mainLightIntensity, 0f, 3f);
-                    EditorGUI.indentLevel--;
-                }
-                
-                EditorGUILayout.Space(5);
-                
-                // Fill light settings
-                EditorGUILayout.LabelField("Fill Light", EditorStyles.boldLabel);
-                settings.lightingConfiguration.enableFillLight = EditorGUILayout.Toggle("Enable Fill Light", settings.lightingConfiguration.enableFillLight);
-                
-                if (settings.lightingConfiguration.enableFillLight)
-                {
-                    EditorGUI.indentLevel++;
-                    settings.lightingConfiguration.fillLightDirection = EditorGUILayout.Vector3Field("Direction", settings.lightingConfiguration.fillLightDirection);
-                    settings.lightingConfiguration.fillLightColor = EditorGUILayout.ColorField("Color", settings.lightingConfiguration.fillLightColor);
-                    settings.lightingConfiguration.fillLightIntensity = EditorGUILayout.Slider("Intensity", settings.lightingConfiguration.fillLightIntensity, 0f, 2f);
-                    EditorGUI.indentLevel--;
-                }
-                
-                EditorGUILayout.Space(8);
-                
-                // Point lights
-                EditorGUILayout.LabelField("Point Lights", EditorStyles.boldLabel);
-                
-                for (int i = 0; i < settings.lightingConfiguration.pointLights.Count; i++)
-                {
-                    var pointLight = settings.lightingConfiguration.pointLights[i];
-                    
-                    using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
-                    {
-                        using (new EditorGUILayout.HorizontalScope())
-                        {
-                            pointLight.enabled = EditorGUILayout.Toggle($"Point Light {i + 1}", pointLight.enabled);
-                            GUILayout.FlexibleSpace();
-                            
-                            if (GUILayout.Button("✕", GUILayout.Width(25)))
-                            {
-                                settings.lightingConfiguration.RemovePointLight(i);
-                                break;
-                            }
-                        }
-                        
-                        if (pointLight.enabled)
-                        {
-                            EditorGUI.indentLevel++;
-                            pointLight.position = EditorGUILayout.Vector3Field("Position", pointLight.position);
-                            pointLight.color = EditorGUILayout.ColorField("Color", pointLight.color);
-                            pointLight.intensity = EditorGUILayout.Slider("Intensity", pointLight.intensity, 0f, 3f);
-                            pointLight.range = EditorGUILayout.Slider("Range", pointLight.range, 1f, 20f);
-                            EditorGUI.indentLevel--;
-                        }
-                    }
-                }
-                
-                if (GUILayout.Button("➕ Add Point Light", GUILayout.Height(BUTTON_HEIGHT)))
-                {
-                    settings.lightingConfiguration.AddPointLight();
-                }
-                
-                EditorGUI.indentLevel--;
+                generateButton.clicked += GenerateIcons;
+                generateButton.SetEnabled(true);
             }
-            
-            EditorGUILayout.EndFoldoutHeaderGroup();
+            if (previewButton != null)
+                previewButton.clicked += PreviewSettings;
+            if (addPointLightButton != null)
+                addPointLightButton.clicked += AddPointLight;
+            if (setupMockupButton != null)
+                setupMockupButton.clicked += SetupSceneMockup;
+            if (capturePreviewButton != null)
+                capturePreviewButton.clicked += CapturePreview;
+            if (collectConfigButton != null)
+                collectConfigButton.clicked += CollectSceneConfiguration;
+            if (saveConfigButton != null)
+                saveConfigButton.clicked += SaveConfiguration;
+            if (loadConfigButton != null)
+                loadConfigButton.clicked += LoadConfiguration;
+            if (addSizeButton != null)
+                addSizeButton.clicked += AddSizeVariant;
+            if (titleButton != null)
+                titleButton.clicked += OpenGitHubPage;
+            if (versionButton != null)
+                versionButton.clicked += OpenChangelogPage;
         }
         
-        private void DrawAdvancedSection()
+        private void BindUIElementsFallback()
         {
-            showAdvancedSettings = EditorGUILayout.BeginFoldoutHeaderGroup(showAdvancedSettings, "⚙️ Advanced Settings");
-            
-            if (showAdvancedSettings)
-            {
-                EditorGUI.indentLevel++;
-                
-                EditorGUILayout.Space(5);
-                
-                // Camera settings
-                EditorGUILayout.LabelField("Camera Settings", EditorStyles.boldLabel);
-                settings.cameraPosition = EditorGUILayout.Vector3Field("Position", settings.cameraPosition);
-                settings.cameraRotation = EditorGUILayout.Vector3Field("Rotation", settings.cameraRotation);
-                settings.fieldOfView = EditorGUILayout.Slider("Field of View", settings.fieldOfView, 10f, 120f);
-                settings.backgroundColor = EditorGUILayout.ColorField("Background Color", settings.backgroundColor);
-                
-                EditorGUILayout.Space(8);
-                
-                // Object transform
-                EditorGUILayout.LabelField("Object Transform", EditorStyles.boldLabel);
-                settings.objectScale = EditorGUILayout.Vector3Field("Scale", settings.objectScale);
-                settings.objectPosition = EditorGUILayout.Vector3Field("Position", settings.objectPosition);
-                settings.objectRotation = EditorGUILayout.Vector3Field("Rotation", settings.objectRotation);
-                
-                settings.autoCenter = EditorGUILayout.Toggle(
-                    new GUIContent("Auto Center", "Automatically center objects in view"),
-                    settings.autoCenter
-                );
-                
-                settings.autoFit = EditorGUILayout.Toggle(
-                    new GUIContent("Auto Fit", "Automatically scale objects to fit nicely in frame"),
-                    settings.autoFit
-                );
-                
-                EditorGUILayout.Space(8);
-                
-                // Processing options
-                EditorGUILayout.LabelField("Processing Options", EditorStyles.boldLabel);
-                
-                settings.pauseOnError = EditorGUILayout.Toggle(
-                    new GUIContent("Pause on Error", "Stop processing when an error occurs"),
-                    settings.pauseOnError
-                );
-                
-                settings.enableMemoryOptimization = EditorGUILayout.Toggle(
-                    new GUIContent("Memory Optimization", "Use memory-efficient processing (slower but uses less RAM)"),
-                    settings.enableMemoryOptimization
-                );
-                
-                settings.exportConfigurationWithIcons = EditorGUILayout.Toggle(
-                    new GUIContent("Export Configuration", "Save configuration file alongside icons"),
-                    settings.exportConfigurationWithIcons
-                );
-                
-                EditorGUI.indentLevel--;
-            }
-            
-            EditorGUILayout.EndFoldoutHeaderGroup();
+            BindField<Vector3Field, Vector3>("camera-position", settings.cameraPosition, val => settings.cameraPosition = val);
+            BindField<Vector3Field, Vector3>("camera-rotation", settings.cameraRotation, val => settings.cameraRotation = val);
+            BindField<FloatField, float>("camera-fov", settings.cameraFOV, val => settings.cameraFOV = val);
+            BindField<ColorField, Color>("background-color", settings.backgroundColor, val => settings.backgroundColor = val);
+            BindField<Vector3Field, Vector3>("main-light-direction", settings.mainLightDirection, val => settings.mainLightDirection = val);
+            BindField<ColorField, Color>("main-light-color", settings.mainLightColor, val => settings.mainLightColor = val);
+            BindField<FloatField, float>("main-light-intensity", settings.mainLightIntensity, val => settings.mainLightIntensity = val);
+            BindField<Vector3Field, Vector3>("fill-light-direction", settings.fillLightDirection, val => settings.fillLightDirection = val);
+            BindField<ColorField, Color>("fill-light-color", settings.fillLightColor, val => settings.fillLightColor = val);
+            BindField<FloatField, float>("fill-light-intensity", settings.fillLightIntensity, val => settings.fillLightIntensity = val);
+            BindField<FloatField, float>("object-scale", settings.objectScale, val => settings.objectScale = val);
+            BindField<Vector3Field, Vector3>("object-position", settings.objectPosition, val => settings.objectPosition = val);
+            BindField<Vector3Field, Vector3>("object-rotation", settings.objectRotation, val => settings.objectRotation = val);
+            BindField<Toggle, bool>("auto-center", settings.autoCenter, val => settings.autoCenter = val);
+            BindField<Toggle, bool>("auto-fit", settings.autoFit, val => settings.autoFit = val);
         }
         
-        private void DrawGenerationControls()
+        private void BindField<TField, TValue>(string fieldName, TValue initialValue, System.Action<TValue> onValueChanged)
+            where TField : BaseField<TValue>
         {
-            EditorGUILayout.Space(10);
-            
-            using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+            var field = root.Q<TField>(fieldName);
+            if (field != null)
             {
-                EditorGUILayout.LabelField("🚀 Generation Controls", EditorStyles.boldLabel);
-                
-                EditorGUILayout.Space(5);
-                
-                // Validation and summary
-                var issues = settings.ValidateSettings();
-                if (issues.Count > 0)
-                {
-                    foreach (var issue in issues)
-                    {
-                        EditorGUILayout.HelpBox(issue, MessageType.Warning);
-                    }
-                }
-                else
-                {
-                    var estimatedTime = settings.GetEstimatedProcessingTime();
-                    var summaryText = $"Ready to generate {settings.GetTotalIconCount()} icons\nEstimated time: {estimatedTime:F1} seconds";
-                    EditorGUILayout.HelpBox(summaryText, MessageType.Info);
-                }
-                
-                EditorGUILayout.Space(5);
-                
-                // Generation controls
-                using (new EditorGUILayout.HorizontalScope())
-                {
-                    using (new EditorGUI.DisabledScope(isProcessing || issues.Count > 0))
-                    {
-                        if (GUILayout.Button("🎬 Setup Scene Mockup", GUILayout.Height(30)))
-                        {
-                            SetupSceneMockup();
-                        }
-                        
-                        if (GUILayout.Button("📸 Capture Preview", GUILayout.Height(30)))
-                        {
-                            CapturePreview();
-                        }
-                    }
-                }
-                
-                EditorGUILayout.Space(3);
-                
-                using (new EditorGUILayout.HorizontalScope())
-                {
-                    using (new EditorGUI.DisabledScope(isProcessing))
-                    {
-                        if (GUILayout.Button("💾 Save Configuration", GUILayout.Height(25)))
-                        {
-                            SaveConfiguration();
-                        }
-                        
-                        if (GUILayout.Button("📂 Load Configuration", GUILayout.Height(25)))
-                        {
-                            LoadConfiguration();
-                        }
-                    }
-                }
-                
-                EditorGUILayout.Space(5);
-                
-                // Main generation button
-                using (new EditorGUI.DisabledScope(isProcessing || issues.Count > 0))
-                {
-                    var buttonText = isProcessing ? "⏳ Processing..." : "🎨 Generate Icons";
-                    var buttonColor = isProcessing ? Color.yellow : Color.green;
-                    
-                    var originalColor = GUI.backgroundColor;
-                    GUI.backgroundColor = buttonColor;
-                    
-                    if (GUILayout.Button(buttonText, GUILayout.Height(40)))
-                    {
-                        StartGeneration();
-                    }
-                    
-                    GUI.backgroundColor = originalColor;
-                }
-                
-                if (isProcessing)
-                {
-                    if (GUILayout.Button("⏹️ Cancel Processing", GUILayout.Height(25)))
-                    {
-                        CancelGeneration();
-                    }
-                }
+                field.value = initialValue;
+                field.RegisterValueChangedCallback(evt => {
+                    onValueChanged(evt.newValue);
+                    settings.SaveToPrefs();
+                });
             }
         }
         
-        private void DrawProgressSection()
+        private void OpenGitHubPage()
         {
-            if (isProcessing)
+            Application.OpenURL("https://github.com/razluta/UnityIconGenerationFromModels");
+        }
+        
+        private void OpenChangelogPage()
+        {
+            Application.OpenURL("https://github.com/razluta/UnityIconGenerationFromModels/blob/main/CHANGELOG.md");
+        }
+        
+        private void UpdatePrefabCount()
+        {
+            if (prefabCountLabel == null) return;
+            
+            int count = 0;
+            if (AssetDatabase.IsValidFolder(settings.inputFolderPath))
             {
-                EditorGUILayout.Space(5);
-                
-                using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+                var guids = AssetDatabase.FindAssets("t:Prefab", new[] { settings.inputFolderPath });
+                foreach (var guid in guids)
                 {
-                    EditorGUILayout.LabelField("📊 Processing Progress", EditorStyles.boldLabel);
-                    
-                    var progressRect = GUILayoutUtility.GetRect(0, 20, GUILayout.ExpandWidth(true));
-                    EditorGUI.ProgressBar(progressRect, processingProgress, processingStatus);
-                    
-                    EditorGUILayout.Space(3);
-                    
-                    if (currentReport != null && settings.showDetailedProgress)
+                    var path = AssetDatabase.GUIDToAssetPath(guid);
+                    var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                    if (prefab != null && prefab.name.StartsWith(settings.prefabNamePrefix))
                     {
-                        var recentLogs = currentReport.logEntries.TakeLast(3).ToList();
-                        foreach (var log in recentLogs)
-                        {
-                            var logStyle = new GUIStyle(EditorStyles.miniLabel)
-                            {
-                                wordWrap = true
-                            };
-                            EditorGUILayout.LabelField($"{log.GetLevelIcon()} {log.message}", logStyle);
-                        }
+                        count++;
                     }
                 }
             }
+            
+            prefabCountLabel.text = $"Found Prefabs: {count}";
         }
         
-        private void DrawReportsSection()
+        private void AddPointLight()
         {
-            showReportsPanel = EditorGUILayout.BeginFoldoutHeaderGroup(showReportsPanel, "📊 Generation Reports");
+            settings.AddPointLight();
+            RefreshPointLightsUI();
+        }
+        
+        private void RemovePointLight(int index)
+        {
+            settings.RemovePointLight(index);
+            RefreshPointLightsUI();
+        }
+        
+        private void SetupLightingPresetDropdown()
+        {
+            if (lightingPresetDropdown == null) return;
             
-            if (showReportsPanel)
+            var presetNames = new List<string>();
+            var presetTypes = LightingPresets.GetAllPresetTypes();
+            
+            foreach (var presetType in presetTypes)
             {
-                EditorGUI.indentLevel++;
-                
-                EditorGUILayout.Space(5);
-                
-                // Reports settings
-                settings.enableReports = EditorGUILayout.Toggle(
-                    new GUIContent("Enable Reports", "Generate detailed reports during processing"),
-                    settings.enableReports
-                );
-                
-                settings.showDetailedProgress = EditorGUILayout.Toggle(
-                    new GUIContent("Show Detailed Progress", "Display recent log entries during processing"),
-                    settings.showDetailedProgress
-                );
-                
-                EditorGUILayout.Space(8);
-                
-                // Reports management
-                using (new EditorGUILayout.HorizontalScope())
-                {
-                    if (GUILayout.Button("📁 Open Reports Folder", GUILayout.Height(25)))
-                    {
-                        GenerationReportManager.OpenReportsFolder();
-                    }
-                    
-                    if (GUILayout.Button("🗑️ Clear Recent Reports", GUILayout.Height(25)))
-                    {
-                        GenerationReportManager.ClearRecentReports();
-                    }
-                }
-                
-                EditorGUILayout.Space(5);
-                
-                // Current report summary
-                if (currentReport != null)
-                {
-                    EditorGUILayout.LabelField("Current Session Report", EditorStyles.boldLabel);
-                    
-                    using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
-                    {
-                        var summary = currentReport.GetSummary();
-                        var summaryStyle = new GUIStyle(EditorStyles.wordWrappedLabel)
-                        {
-                            fontSize = 10
-                        };
-                        EditorGUILayout.LabelField(summary, summaryStyle);
-                        
-                        if (currentReport.HasErrors || currentReport.HasWarnings)
-                        {
-                            EditorGUILayout.Space(3);
-                            
-                            if (currentReport.HasErrors)
-                            {
-                                EditorGUILayout.HelpBox($"❌ {currentReport.GetErrorEntries().Count} errors occurred", MessageType.Error);
-                            }
-                            
-                            if (currentReport.HasWarnings)
-                            {
-                                EditorGUILayout.HelpBox($"⚠️ {currentReport.GetWarningEntries().Count} warnings", MessageType.Warning);
-                            }
-                        }
-                    }
-                }
-                
-                // Recent reports
-                var recentReports = GenerationReportManager.RecentReports;
-                if (recentReports.Count > 0)
-                {
-                    EditorGUILayout.Space(8);
-                    EditorGUILayout.LabelField("Recent Reports", EditorStyles.boldLabel);
-                    
-                    foreach (var report in recentReports.Take(5))
-                    {
-                        using (new EditorGUILayout.HorizontalScope(EditorStyles.helpBox))
-                        {
-                            var reportLabel = $"{report.sessionStartTime:MM/dd HH:mm} - {report.successfulPrefabs}/{report.totalPrefabs} icons";
-                            EditorGUILayout.LabelField(reportLabel, GUILayout.ExpandWidth(true));
-                            
-                            if (GUILayout.Button("View", GUILayout.Width(40)))
-                            {
-                                // Show report details - could open in separate window
-                                Debug.Log(report.GetDetailedLog());
-                            }
-                        }
-                    }
-                }
-                
-                EditorGUI.indentLevel--;
+                presetNames.Add(LightingPresets.GetPresetDisplayName(presetType));
             }
             
-            EditorGUILayout.EndFoldoutHeaderGroup();
-        }
-        
-        // Implementation methods
-        private void SetupSceneMockup()
-        {
-            // Implementation for scene mockup setup
-            Debug.Log("Setting up scene mockup...");
-        }
-        
-        private void CapturePreview()
-        {
-            // Implementation for preview capture
-            Debug.Log("Capturing preview...");
-        }
-        
-        private void StartGeneration()
-        {
-            isProcessing = true;
-            processingProgress = 0f;
-            processingStatus = "Starting generation...";
+            lightingPresetDropdown.choices = presetNames;
+            lightingPresetDropdown.value = LightingPresets.GetPresetDisplayName(settings.currentLightingPreset);
             
-            if (settings.enableReports)
+            lightingPresetDropdown.RegisterValueChangedCallback(evt => {
+                var selectedIndex = lightingPresetDropdown.choices.IndexOf(evt.newValue);
+                if (selectedIndex >= 0 && selectedIndex < presetTypes.Length)
+                {
+                    var selectedPreset = presetTypes[selectedIndex];
+                    settings.ApplyLightingPreset(selectedPreset);
+                    RefreshLightingUIFromSettings();
+                    RefreshPointLightsUI();
+                }
+            });
+        }
+        
+        private void UpdateLightingPresetDropdown()
+        {
+            if (lightingPresetDropdown == null) return;
+            lightingPresetDropdown.value = LightingPresets.GetPresetDisplayName(settings.currentLightingPreset);
+        }
+        
+        private void RefreshLightingUIFromSettings()
+        {
+            RefreshField<Vector3Field, Vector3>("main-light-direction", settings.mainLightDirection);
+            RefreshField<ColorField, Color>("main-light-color", settings.mainLightColor);
+            RefreshField<FloatField, float>("main-light-intensity", settings.mainLightIntensity);
+            RefreshField<Vector3Field, Vector3>("fill-light-direction", settings.fillLightDirection);
+            RefreshField<ColorField, Color>("fill-light-color", settings.fillLightColor);
+            RefreshField<FloatField, float>("fill-light-intensity", settings.fillLightIntensity);
+        }
+        
+        private void SetupIconSizeDropdown()
+        {
+            if (iconSizeDropdown == null) return;
+            
+            var availableSizes = IconGeneratorSettings.GetAvailableSizes();
+            var sizeNames = new List<string>();
+            
+            foreach (var size in availableSizes)
             {
-                currentReport = GenerationReportManager.StartNewReport();
-                currentReport.qualityPreset = settings.qualitySettings.renderQualityPreset;
-                currentReport.antiAliasingLevel = settings.qualitySettings.antiAliasingLevel;
-                currentReport.outputFormat = settings.exportFormat.ToString();
-                currentReport.iconSizes = settings.GetAllSizes();
-                currentReport.folderCount = settings.multiFolderManager.GetValidFolders().Count;
-                currentReport.totalPrefabs = settings.multiFolderManager.GetTotalPrefabCount();
+                sizeNames.Add(IconGeneratorSettings.GetSizeDisplayName(size));
             }
             
-            // Start the actual generation process using the updated IconGeneratorTool
-            IconGeneratorTool.GenerateIcons(settings, OnProgressUpdate);
+            iconSizeDropdown.choices = sizeNames;
+            iconSizeDropdown.value = IconGeneratorSettings.GetSizeDisplayName(settings.iconSize);
+            
+            iconSizeDropdown.RegisterValueChangedCallback(evt => {
+                var selectedIndex = iconSizeDropdown.choices.IndexOf(evt.newValue);
+                if (selectedIndex >= 0 && selectedIndex < availableSizes.Length)
+                {
+                    settings.iconSize = availableSizes[selectedIndex];
+                    settings.SaveToPrefs();
+                }
+            });
         }
         
-        private void OnProgressUpdate(float progress, string status)
+        private void SetupExportFormatDropdown()
         {
-            processingProgress = progress;
-            processingStatus = status;
-            Repaint();
+            if (exportFormatDropdown == null) return;
             
-            if (progress >= 1.0f)
+            var formatNames = new List<string> { "PNG", "TGA" };
+            exportFormatDropdown.choices = formatNames;
+            exportFormatDropdown.value = settings.exportFormat == ExportFormat.PNG ? "PNG" : "TGA";
+            
+            exportFormatDropdown.RegisterValueChangedCallback(evt => {
+                settings.exportFormat = evt.newValue == "PNG" ? ExportFormat.PNG : ExportFormat.TGA;
+                settings.SaveToPrefs();
+            });
+        }
+        
+        private void AddSizeVariant()
+        {
+            var availableSizes = IconGeneratorSettings.GetAvailableSizes();
+            var firstAvailableSize = availableSizes.FirstOrDefault(size => 
+                size != settings.iconSize && !settings.additionalSizes.Contains(size));
+            
+            if (firstAvailableSize > 0)
             {
-                isProcessing = false;
-                processingProgress = 0f;
-                processingStatus = "";
-                
-                if (currentReport != null)
-                {
-                    GenerationReportManager.CompleteCurrentReport();
-                }
+                settings.additionalSizes.Add(firstAvailableSize);
+                settings.SaveToPrefs();
+                RefreshAdditionalSizesUI();
+            }
+            else
+            {
+                EditorUtility.DisplayDialog("No More Sizes", "All available sizes are already selected.", "OK");
             }
         }
         
-        private void CancelGeneration()
+        private void RemoveSizeVariant(int size)
         {
-            isProcessing = false;
-            processingProgress = 0f;
-            processingStatus = "";
+            settings.additionalSizes.Remove(size);
+            settings.SaveToPrefs();
+            RefreshAdditionalSizesUI();
+        }
+        
+        private void RefreshAdditionalSizesUI()
+        {
+            if (additionalSizesContainer == null) return;
             
-            IconGeneratorTool.CancelGeneration();
+            additionalSizesContainer.Clear();
             
-            if (currentReport != null)
+            foreach (var size in settings.additionalSizes)
             {
-                currentReport.LogWarning("Generation cancelled by user");
-                GenerationReportManager.CompleteCurrentReport();
+                CreateAdditionalSizeUI(size);
             }
+        }
+        
+        private void CreateAdditionalSizeUI(int size)
+        {
+            var container = new VisualElement();
+            container.style.flexDirection = FlexDirection.Row;
+            container.style.alignItems = Align.Center;
+            container.style.marginBottom = 2;
             
-            Debug.Log("Generation cancelled");
+            var label = new Label(IconGeneratorSettings.GetSizeDisplayName(size));
+            label.style.flexGrow = 1;
+            container.Add(label);
+            
+            var removeButton = new Button(() => RemoveSizeVariant(size)) { text = "Remove" };
+            removeButton.style.height = 20;
+            removeButton.style.width = 60;
+            container.Add(removeButton);
+            
+            additionalSizesContainer.Add(container);
         }
         
         private void SaveConfiguration()
         {
-            var savePath = EditorUtility.SaveFilePanel(
-                "Save Configuration",
-                Application.dataPath,
-                "IconGeneratorConfig",
+            var preset = ConfigurationPreset.FromSettings(settings);
+            
+            var presetName = EditorUtility.SaveFilePanel(
+                "Save Configuration Preset",
+                "Assets",
+                "IconConfiguration",
                 "json"
             );
             
-            if (!string.IsNullOrEmpty(savePath))
+            if (!string.IsNullOrEmpty(presetName))
             {
-                try
+                preset.presetName = System.IO.Path.GetFileNameWithoutExtension(presetName);
+                if (ConfigurationPresetsManager.SaveConfiguration(preset, presetName))
                 {
-                    var json = JsonUtility.ToJson(settings, true);
-                    File.WriteAllText(savePath, json);
-                    Debug.Log($"Configuration saved to: {savePath}");
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogError($"Failed to save configuration: {ex.Message}");
+                    statusLabel.text = "Configuration saved successfully!";
                 }
             }
         }
         
         private void LoadConfiguration()
         {
-            var loadPath = EditorUtility.OpenFilePanel(
-                "Load Configuration",
-                Application.dataPath,
-                "json"
-            );
+            var preset = ConfigurationPresetsManager.LoadConfiguration();
+            if (preset != null)
+            {
+                ConfigurationPresetsManager.ShowConfigurationInfo(preset);
+                
+                var result = EditorUtility.DisplayDialog(
+                    "Load Configuration",
+                    $"Load configuration '{preset.presetName}'?\n\nThis will overwrite your current settings.",
+                    "Load",
+                    "Cancel"
+                );
+                
+                if (result)
+                {
+                    preset.ApplyToSettings(settings);
+                    RefreshAllUIFromSettings();
+                    statusLabel.text = $"Configuration '{preset.presetName}' loaded successfully!";
+                }
+            }
+        }
+        
+        private void RefreshPointLightsUI()
+        {
+            if (pointLightsContainer == null) return;
             
-            if (!string.IsNullOrEmpty(loadPath) && File.Exists(loadPath))
+            pointLightsContainer.Clear();
+            
+            for (int i = 0; i < settings.pointLights.Count; i++)
             {
-                try
-                {
-                    var json = File.ReadAllText(loadPath);
-                    settings = JsonUtility.FromJson<IconGeneratorSettings>(json);
-                    Debug.Log($"Configuration loaded from: {loadPath}");
+                CreatePointLightUI(i);
+            }
+        }
+        
+        private void CreatePointLightUI(int index)
+        {
+            var pointLight = settings.pointLights[index];
+            
+            var container = new VisualElement();
+            container.style.marginBottom = 10;
+            container.style.paddingLeft = 10;
+            container.style.paddingRight = 10;
+            container.style.paddingTop = 5;
+            container.style.paddingBottom = 5;
+            container.style.backgroundColor = new Color(0.3f, 0.3f, 0.3f, 0.2f);
+            container.style.borderTopLeftRadius = 4;
+            container.style.borderTopRightRadius = 4;
+            container.style.borderBottomLeftRadius = 4;
+            container.style.borderBottomRightRadius = 4;
+            
+            var header = new VisualElement();
+            header.style.flexDirection = FlexDirection.Row;
+            header.style.justifyContent = Justify.SpaceBetween;
+            header.style.alignItems = Align.Center;
+            container.Add(header);
+            
+            var title = new Label($"Point Light {index + 1}");
+            title.style.unityFontStyleAndWeight = FontStyle.Bold;
+            header.Add(title);
+            
+            var removeButton = new Button(() => RemovePointLight(index)) { text = "Remove" };
+            removeButton.style.height = 20;
+            removeButton.style.width = 60;
+            header.Add(removeButton);
+            
+            var enabledToggle = new Toggle("Enabled");
+            enabledToggle.value = pointLight.enabled;
+            enabledToggle.RegisterValueChangedCallback(evt => {
+                pointLight.enabled = evt.newValue;
+                settings.SaveToPrefs();
+            });
+            container.Add(enabledToggle);
+            
+            var positionField = new Vector3Field("Position");
+            positionField.value = pointLight.position;
+            positionField.RegisterValueChangedCallback(evt => {
+                pointLight.position = evt.newValue;
+                settings.SaveToPrefs();
+            });
+            container.Add(positionField);
+            
+            var colorField = new ColorField("Color");
+            colorField.value = pointLight.color;
+            colorField.RegisterValueChangedCallback(evt => {
+                pointLight.color = evt.newValue;
+                settings.SaveToPrefs();
+            });
+            container.Add(colorField);
+            
+            var intensityField = new FloatField("Intensity");
+            intensityField.value = pointLight.intensity;
+            intensityField.RegisterValueChangedCallback(evt => {
+                pointLight.intensity = evt.newValue;
+                settings.SaveToPrefs();
+            });
+            container.Add(intensityField);
+            
+            var rangeField = new FloatField("Range");
+            rangeField.value = pointLight.range;
+            rangeField.RegisterValueChangedCallback(evt => {
+                pointLight.range = evt.newValue;
+                settings.SaveToPrefs();
+            });
+            container.Add(rangeField);
+            
+            pointLightsContainer.Add(container);
+        }
+        
+        private void SetupSceneMockup()
+        {
+            var mockupTool = new SceneMockupTool(settings);
+            mockupTool.SetupMockupScene();
+            statusLabel.text = "Scene mockup created! Check your scene view.";
+        }
+        
+        private void CapturePreview()
+        {
+            var mockupTool = new SceneMockupTool(settings);
+            var previewTexture = mockupTool.CapturePreview();
+            
+            if (previewTexture != null)
+            {
+                ShowPreviewWindow(previewTexture);
+                statusLabel.text = "Preview captured!";
+            }
+            else
+            {
+                statusLabel.text = "Failed to capture preview. Make sure scene mockup is set up.";
+            }
+        }
+        
+        private void CollectSceneConfiguration()
+        {
+            var mockupTool = new SceneMockupTool(settings);
+            if (mockupTool.CollectSceneConfiguration())
+            {
+                RefreshAllUIFromSettings();
+                statusLabel.text = "Scene configuration collected and updated!";
+            }
+            else
+            {
+                statusLabel.text = "No mockup scene found. Please setup scene mockup first.";
+            }
+        }
+        
+        private void RefreshAllUIFromSettings()
+        {
+            var inputFolder = root.Q<ObjectField>("input-folder");
+            if (inputFolder != null)
+                inputFolder.value = AssetDatabase.LoadAssetAtPath<DefaultAsset>(settings.inputFolderPath);
+                
+            var prefabPrefix = root.Q<TextField>("prefab-prefix");
+            if (prefabPrefix != null)
+                prefabPrefix.value = settings.prefabNamePrefix;
+                
+            var outputFolder = root.Q<ObjectField>("output-folder");
+            if (outputFolder != null)
+                outputFolder.value = AssetDatabase.LoadAssetAtPath<DefaultAsset>(settings.outputFolderPath);
+            
+            RefreshField<Vector3Field, Vector3>("camera-position", settings.cameraPosition);
+            RefreshField<Vector3Field, Vector3>("camera-rotation", settings.cameraRotation);
+            RefreshField<FloatField, float>("camera-fov", settings.cameraFOV);
+            RefreshField<ColorField, Color>("background-color", settings.backgroundColor);
+            RefreshField<Vector3Field, Vector3>("main-light-direction", settings.mainLightDirection);
+            RefreshField<ColorField, Color>("main-light-color", settings.mainLightColor);
+            RefreshField<FloatField, float>("main-light-intensity", settings.mainLightIntensity);
+            RefreshField<Vector3Field, Vector3>("fill-light-direction", settings.fillLightDirection);
+            RefreshField<ColorField, Color>("fill-light-color", settings.fillLightColor);
+            RefreshField<FloatField, float>("fill-light-intensity", settings.fillLightIntensity);
+            RefreshField<FloatField, float>("object-scale", settings.objectScale);
+            RefreshField<Vector3Field, Vector3>("object-position", settings.objectPosition);
+            RefreshField<Vector3Field, Vector3>("object-rotation", settings.objectRotation);
+            RefreshField<Toggle, bool>("auto-center", settings.autoCenter);
+            RefreshField<Toggle, bool>("auto-fit", settings.autoFit);
+            
+            RefreshPointLightsUI();
+            UpdatePrefabCount();
+            UpdateLightingPresetDropdown();
+            RefreshAdditionalSizesUI();
+        }
+        
+        private void RefreshField<TField, TValue>(string fieldName, TValue value)
+            where TField : BaseField<TValue>
+        {
+            var field = root.Q<TField>(fieldName);
+            if (field != null)
+                field.value = value;
+        }
+        
+        private void ShowPreviewWindow(Texture2D previewTexture)
+        {
+            var previewWindow = GetWindow<IconPreviewWindow>();
+            previewWindow.titleContent = new GUIContent("Icon Preview");
+            previewWindow.SetPreviewTexture(previewTexture);
+            previewWindow.Show();
+        }
+        
+        private void PreviewSettings()
+        {
+            var message = $"Current Settings:\n\n" +
+                         $"Input Folder: {settings.inputFolderPath}\n" +
+                         $"Prefab Prefix: {settings.prefabNamePrefix}\n" +
+                         $"Output Folder: {settings.outputFolderPath}\n" +
+                         $"Icon Size: {settings.iconSize}x{settings.iconSize}\n" +
+                         $"Additional Sizes: {settings.additionalSizes.Count}\n" +
+                         $"Export Format: {settings.exportFormat}\n" +
+                         $"Camera Position: {settings.cameraPosition}\n" +
+                         $"Camera FOV: {settings.cameraFOV}°\n" +
+                         $"Auto Center: {settings.autoCenter}\n" +
+                         $"Auto Fit: {settings.autoFit}\n" +
+                         $"Point Lights: {settings.pointLights.Count}";
+            
+            EditorUtility.DisplayDialog("Unity Icon Generation Settings", message, "OK");
+        }
+        
+        private void GenerateIcons()
+        {
+            Debug.Log("Generate Icons button clicked");
+            Debug.Log($"Input folder: '{settings.inputFolderPath}' (Valid: {AssetDatabase.IsValidFolder(settings.inputFolderPath)})");
+            Debug.Log($"Output folder: '{settings.outputFolderPath}'");
+            Debug.Log($"Prefab prefix: '{settings.prefabNamePrefix}'");
+            
+            if (string.IsNullOrEmpty(settings.inputFolderPath) || !AssetDatabase.IsValidFolder(settings.inputFolderPath))
+            {
+                EditorUtility.DisplayDialog("Error", "Please select a valid input folder.", "OK");
+                return;
+            }
+            
+            if (string.IsNullOrEmpty(settings.outputFolderPath))
+            {
+                EditorUtility.DisplayDialog("Error", "Please select a valid output folder.", "OK");
+                return;
+            }
+            
+            if (string.IsNullOrEmpty(settings.prefabNamePrefix))
+            {
+                EditorUtility.DisplayDialog("Error", "Please enter a prefab name prefix.", "OK");
+                return;
+            }
+            
+            generateButton.SetEnabled(false);
+            statusLabel.text = "Generating icons...";
+            
+            var tool = new UnityIconGenerationTool(settings);
+            tool.GenerateIcons(
+                onProgress: (progress) => {
+                    statusLabel.text = progress;
+                    Repaint();
+                },
+                onComplete: () => {
+                    generateButton.SetEnabled(true);
+                    statusLabel.text = "Icons generated successfully!";
+                    Repaint();
                 }
-                catch (Exception ex)
+            );
+        }
+    }
+    
+    public class IconPreviewWindow : EditorWindow
+    {
+        private Texture2D previewTexture;
+        
+        public void SetPreviewTexture(Texture2D texture)
+        {
+            previewTexture = texture;
+            minSize = new Vector2(texture.width + 20, texture.height + 60);
+            maxSize = minSize;
+        }
+        
+        private void OnGUI()
+        {
+            if (previewTexture != null)
+            {
+                GUILayout.Label("Icon Preview:", EditorStyles.boldLabel);
+                GUILayout.Space(5);
+                
+                var rect = GUILayoutUtility.GetRect(previewTexture.width, previewTexture.height);
+                GUI.DrawTexture(rect, previewTexture, ScaleMode.ScaleToFit, true);
+                
+                GUILayout.Space(10);
+                if (GUILayout.Button("Save Preview"))
                 {
-                    Debug.LogError($"Failed to load configuration: {ex.Message}");
+                    SavePreview();
                 }
             }
         }
         
-        private void LoadSettings()
+        private void SavePreview()
         {
-            var settingsJson = EditorPrefs.GetString("IconGenerator_Settings_v1.2.0", "");
-            if (!string.IsNullOrEmpty(settingsJson))
+            if (previewTexture == null) return;
+            
+            var path = EditorUtility.SaveFilePanel("Save Preview", "Assets", "IconPreview", "png");
+            if (!string.IsNullOrEmpty(path))
             {
-                try
+                var pngData = previewTexture.EncodeToPNG();
+                System.IO.File.WriteAllBytes(path, pngData);
+                
+                if (path.StartsWith(Application.dataPath))
                 {
-                    settings = JsonUtility.FromJson<IconGeneratorSettings>(settingsJson);
+                    AssetDatabase.Refresh();
                 }
-                catch (Exception ex)
-                {
-                    Debug.LogWarning($"Failed to load saved settings: {ex.Message}");
-                    settings = new IconGeneratorSettings();
-                }
-            }
-        }
-        
-        private void SaveSettings()
-        {
-            try
-            {
-                var settingsJson = JsonUtility.ToJson(settings);
-                EditorPrefs.SetString("IconGenerator_Settings_v1.2.0", settingsJson);
-            }
-            catch (Exception ex)
-            {
-                Debug.LogWarning($"Failed to save settings: {ex.Message}");
+                
+                Debug.Log($"Preview saved to: {path}");
             }
         }
     }

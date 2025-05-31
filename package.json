@@ -1,41 +1,26 @@
 {
   "name": "com.razluta.unity-icon-generation-from-models",
+  "version": "1.1.0",
   "displayName": "Unity Icon Generation From Models",
-  "version": "1.2.0",
-  "unity": "2022.3",
-  "description": "A Unity Editor tool for generating transparent icons from 3D model prefabs with customizable rendering environments, featuring visual scene mockups, real-time preview capabilities, professional lighting presets, quality controls, multi-folder processing, and detailed generation reports.",
+  "description": "A Unity tool for generating transparent icons from 3D model prefabs with customizable rendering environments.",
+  "unity": "6000.0",
   "keywords": [
-    "icon",
-    "generator",
-    "3d",
-    "models",
-    "prefabs",
-    "rendering",
     "tools",
     "editor",
-    "transparent",
-    "batch",
-    "quality",
-    "lighting"
+    "icons",
+    "3d",
+    "rendering",
+    "models"
   ],
   "author": {
-    "name": "Razvan Luta",
-    "email": "razvan@razluta.com",
-    "url": "https://razluta.com"
+    "name": "Razluta",
+    "url": "https://github.com/razluta"
   },
-  "license": "MIT",
-  "homepage": "https://github.com/razluta/UnityIconGenerationFromModels",
-  "bugs": {
-    "url": "https://github.com/razluta/UnityIconGenerationFromModels/issues"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/razluta/UnityIconGenerationFromModels.git"
-  },
+  "dependencies": {},
   "samples": [
     {
       "displayName": "Example Prefabs",
-      "description": "Sample prefabs for testing the icon generation tool",
+      "description": "Sample prefabs to test the Unity Icon Generation From Models tool",
       "path": "Samples~/ExamplePrefabs"
     }
   ]
